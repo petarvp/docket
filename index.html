@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Docket</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23191E27'/%3E%3Crect x='16' y='14' width='32' height='36' rx='3' fill='none' stroke='%235B8DEF' stroke-width='3'/%3E%3Cpath d='M23 28l6 6 12-13' fill='none' stroke='%23E0A63C' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'/%3E%3Cline x1='22' y1='42' x2='36' y2='42' stroke='%238B93A1' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #12151B;
+    --surface: #1A1F28;
+    --surface-2: #20262F;
+    --border: #2A313D;
+    --border-strong: #3A4250;
+    --text: #EDEFF2;
+    --muted: #8B93A1;
+    --accent: #5B8DEF;
+    --accent-dim: rgba(91,141,239,.15);
+    --danger: #E2574C;
+    --danger-dim: rgba(226,87,76,.15);
+    --warn: #E0A63C;
+    --warn-dim: rgba(224,166,60,.15);
+    --good: #4FA97C;
+    --good-dim: rgba(79,169,124,.15);
+  }
+  body[data-theme="light"]{
+    --bg: #F6F4EF;
+    --surface: #FFFFFF;
+    --surface-2: #F0EDE5;
+    --border: #E1DDD1;
+    --border-strong: #CBC5B4;
+    --text: #23261F;
+    --muted: #6E6A5E;
+    --accent: #3E6FD9;
+    --accent-dim: rgba(62,111,217,.12);
+    --danger: #C1443A;
+    --danger-dim: rgba(193,68,58,.10);
+    --warn: #A97417;
+    --warn-dim: rgba(169,116,23,.12);
+    --good: #2E8259;
+    --good-dim: rgba(46,130,89,.12);
+  }
+  body[data-theme="light"] .code-block{background:#F0EDE5;color:#2A4A8F;}
+  body[data-theme="light"] .btn.primary{color:#FFFFFF;}
+  body[data-theme="light"] .check.done svg{stroke:#FFFFFF;}
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;height:100%;}
+  body{
+    background:var(--bg);
+    color:var(--text);
+    font-family:'IBM Plex Sans', sans-serif;
+    font-size:14px;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,.serif{font-family:'Fraunces', serif;}
+  button{font-family:inherit;}
+  ::selection{background:var(--accent-dim);}
+  .app{display:flex;flex-direction:column;height:100vh;overflow:hidden;}
+
+  /* Header */
+  .topbar{
+    display:flex;align-items:center;gap:16px;
+    padding:14px 22px;border-bottom:1px solid var(--border);
+    flex-shrink:0;
+  }
+  .brand{display:flex;align-items:baseline;gap:10px;}
+  .brand h1{font-size:22px;font-weight:600;margin:0;letter-spacing:.2px;}
+  .brand .tag{color:var(--muted);font-size:12.5px;}
+  .topbar .spacer{flex:1;}
+  .sync-pill{
+    display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);
+    padding:6px 10px;border:1px solid var(--border);border-radius:20px;cursor:pointer;
+    background:transparent;
+  }
+  .sync-pill:hover{border-color:var(--border-strong);}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--border-strong);flex-shrink:0;}
+  .dot.on{background:var(--good);box-shadow:0 0 0 3px var(--good-dim);}
+  .dot.spin{background:var(--accent);animation:pulse 1s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+
+  .view-toggle{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden;}
+  .view-toggle button{
+    background:transparent;border:none;color:var(--muted);padding:7px 13px;font-size:13px;cursor:pointer;
+  }
+  .view-toggle button.active{background:var(--surface-2);color:var(--text);}
+
+  .btn{
+    background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);
+    padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer;display:flex;align-items:center;gap:6px;
+  }
+  .btn:hover{border-color:var(--accent);}
+  .btn.primary{background:var(--accent);border-color:var(--accent);color:#0B0E13;font-weight:600;}
+  .btn.primary:hover{filter:brightness(1.08);}
+  .icon-btn{
+    background:transparent;border:1px solid var(--border);color:var(--muted);
+    width:34px;height:34px;border-radius:8px;display:flex;align-items:center;justify-content:center;cursor:pointer;
+  }
+  .icon-btn:hover{color:var(--text);border-color:var(--border-strong);}
+
+  /* Main layout */
+  .main{flex:1;display:flex;min-height:0;}
+  .chat-pane{
+    width:320px;flex-shrink:0;border-right:1px solid var(--border);
+    display:flex;flex-direction:column;background:var(--surface);
+  }
+  .chat-head{padding:14px 16px;border-bottom:1px solid var(--border);}
+  .chat-head h2{font-size:15px;margin:0 0 3px 0;font-weight:600;}
+  .chat-head p{margin:0;color:var(--muted);font-size:12.5px;line-height:1.4;}
+  .chat-log{flex:1;overflow-y:auto;padding:14px 16px;display:flex;flex-direction:column;gap:10px;}
+  .msg{max-width:100%;font-size:13.5px;line-height:1.5;padding:9px 12px;border-radius:10px;white-space:pre-wrap;}
+  .msg.user{background:var(--accent-dim);color:var(--text);align-self:flex-end;border:1px solid rgba(91,141,239,.3);}
+  .msg.ai{background:var(--surface-2);border:1px solid var(--border);align-self:flex-start;}
+  .msg.ai.error{background:var(--danger-dim);border-color:rgba(226,87,76,.3);}
+  .chat-empty{color:var(--muted);font-size:13px;padding:8px 2px;}
+  .chat-input{display:flex;gap:8px;padding:12px;border-top:1px solid var(--border);}
+  .chat-input textarea{
+    flex:1;resize:none;background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    border-radius:8px;padding:9px 10px;font-family:inherit;font-size:13.5px;height:40px;line-height:1.4;
+  }
+  .chat-input textarea:focus{outline:none;border-color:var(--accent);}
+  .chat-input button{flex-shrink:0;}
+  .chat-locked{padding:14px 16px;color:var(--muted);font-size:13px;line-height:1.5;}
+  .chat-locked a{color:var(--accent);cursor:pointer;}
+
+  .board{flex:1;overflow-y:auto;padding:20px 22px 60px;}
+  .columns{display:flex;gap:16px;align-items:flex-start;}
+  .col{flex:1;min-width:230px;}
+  .col-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding-left:2px;}
+  .col-head .swatch{width:9px;height:9px;border-radius:2px;flex-shrink:0;}
+  .col-head h3{font-size:13.5px;margin:0;font-weight:600;}
+  .col-head .count{color:var(--muted);font-size:12px;}
+  .col-body{display:flex;flex-direction:column;gap:9px;min-height:40px;}
+  .col-empty{
+    border:1px dashed var(--border);border-radius:10px;padding:16px 10px;text-align:center;
+    color:var(--muted);font-size:12px;
+  }
+
+  .card{
+    background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--border-strong);
+    border-radius:9px;padding:11px 12px;animation:rise .25s ease;
+  }
+  .card.pr-High{border-left-color:var(--danger);}
+  .card.pr-Medium{border-left-color:var(--warn);}
+  .card.pr-Low{border-left-color:var(--good);}
+  .card.done{opacity:.5;}
+  .card.done .card-title{text-decoration:line-through;}
+  @keyframes rise{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+  .card-top{display:flex;align-items:flex-start;gap:8px;}
+  .check{
+    width:17px;height:17px;border-radius:5px;border:1.5px solid var(--border-strong);flex-shrink:0;margin-top:2px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;
+  }
+  .check.done{background:var(--good);border-color:var(--good);}
+  .check svg{width:11px;height:11px;display:none;}
+  .check.done svg{display:block;}
+  .card-title{font-size:13.5px;font-weight:500;flex:1;line-height:1.4;}
+  .card-desc{color:var(--muted);font-size:12.5px;margin:5px 0 0 25px;line-height:1.4;}
+  .card-meta{display:flex;flex-wrap:wrap;gap:5px;margin:9px 0 0 25px;}
+  .tag{
+    font-size:11px;padding:2.5px 7px;border-radius:5px;border:1px solid var(--border);color:var(--muted);
+    display:flex;align-items:center;gap:4px;
+  }
+  .tag.cat{background:var(--surface-2);}
+  .tag.date{border-color:transparent;}
+  .tag.date.overdue{background:var(--danger-dim);color:var(--danger);}
+  .tag.date.today{background:var(--warn-dim);color:var(--warn);}
+  .tag.date.soon{background:var(--accent-dim);color:var(--accent);}
+  .tag.date.later{background:var(--surface-2);color:var(--muted);}
+  .card-actions{display:flex;gap:4px;margin-left:auto;}
+  .card-actions button{
+    background:none;border:none;color:var(--muted);cursor:pointer;width:22px;height:22px;
+    display:flex;align-items:center;justify-content:center;border-radius:5px;
+  }
+  .card-actions button:hover{color:var(--text);background:var(--surface-2);}
+  .card-actions svg{width:13px;height:13px;}
+
+  /* Modal */
+  .overlay{
+    position:fixed;inset:0;background:rgba(8,10,14,.65);display:flex;align-items:center;justify-content:center;
+    z-index:50;padding:20px;
+  }
+  .modal{
+    background:var(--surface);border:1px solid var(--border-strong);border-radius:14px;
+    width:100%;max-width:480px;max-height:88vh;overflow-y:auto;
+  }
+  .modal.wide{max-width:600px;}
+  .modal-head{display:flex;align-items:center;padding:16px 18px;border-bottom:1px solid var(--border);}
+  .modal-head h2{font-size:16px;margin:0;flex:1;font-weight:600;}
+  .modal-body{padding:18px;display:flex;flex-direction:column;gap:14px;}
+  .field label{display:block;font-size:12.5px;color:var(--muted);margin-bottom:5px;}
+  .field input, .field select, .field textarea{
+    width:100%;background:var(--surface-2);border:1px solid var(--border);color:var(--text);
+    border-radius:8px;padding:8px 10px;font-family:inherit;font-size:13.5px;
+  }
+  .field input:focus, .field select:focus, .field textarea:focus{outline:none;border-color:var(--accent);}
+  .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;}
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+  .modal-foot{display:flex;justify-content:flex-end;gap:8px;padding:14px 18px;border-top:1px solid var(--border);}
+  .tabs{display:flex;border-bottom:1px solid var(--border);padding:0 18px;}
+  .tab{padding:12px 4px;margin-right:20px;color:var(--muted);font-size:13.5px;cursor:pointer;border-bottom:2px solid transparent;}
+  .tab.active{color:var(--text);border-color:var(--accent);}
+  .hint{color:var(--muted);font-size:12px;line-height:1.5;}
+  .hint a{color:var(--accent);}
+  .hint code{background:var(--surface-2);border:1px solid var(--border);border-radius:4px;padding:1px 5px;font-family:'IBM Plex Mono',monospace;font-size:11px;}
+  .code-block{
+    background:#0D1015;border:1px solid var(--border);border-radius:8px;padding:12px;
+    font-family:'IBM Plex Mono',monospace;font-size:11.5px;color:#B7D0FF;white-space:pre;overflow-x:auto;
+    max-height:260px;overflow-y:auto;line-height:1.5;
+  }
+  .steps{margin:0;padding-left:18px;color:var(--muted);font-size:12.5px;line-height:1.7;}
+  .status-msg{font-size:12.5px;padding:8px 10px;border-radius:7px;}
+  .status-msg.ok{background:var(--good-dim);color:var(--good);}
+  .status-msg.err{background:var(--danger-dim);color:var(--danger);}
+
+  @media (max-width:880px){
+    .main{flex-direction:column;}
+    .chat-pane{width:100%;height:260px;border-right:none;border-bottom:1px solid var(--border);}
+    .columns{flex-direction:column;}
+    .col{width:100%;}
+    .row3{grid-template-columns:1fr 1fr;}
+  }
+</style>
+</head>
+<body>
+<div class="app" id="app"></div>
+
+<script>
+/* ---------------- State ---------------- */
+const state = {
+  settings: {
+    provider: 'gemini',
+    geminiKey:'', model:'gemini-3.6-flash', fallbackModels:'gemini-3.5-flash-lite, gemini-3.1-flash-lite',
+    groqKey:'', groqModel:'openai/gpt-oss-120b',
+    demoUrl:'/.netlify/functions/chat',
+    localUrl:'http://localhost:11434/v1/chat/completions', localModel:'llama3.1',
+    language: 'auto',
+    sheetUrl:'', categories:['Work','Personal','Health','Errands']
+  },
+  tasks: [],
+  view: 'urgency',
+  chat: [],
+  connected: false,
+  syncing: false,
+  loaded: false,
+  theme: 'dark',
+  modal: null,       // 'settings' | 'task'
+  settingsTab: 'connect',
+  editingTask: null,
+  statusMsg: null,
+  chatBusy: false
+};
+
+/* Works inside Claude artifacts (window.storage) AND on any other static host (localStorage fallback) */
+const storage = (window.storage && typeof window.storage.get === 'function') ? window.storage : {
+  async get(key){
+    const v = localStorage.getItem('docket_'+key);
+    if(v === null) throw new Error('not found');
+    return { key, value: v };
+  },
+  async set(key, value){ localStorage.setItem('docket_'+key, value); return { key, value }; },
+  async delete(key){ localStorage.removeItem('docket_'+key); return { key, deleted:true }; },
+  async list(prefix){
+    const keys = Object.keys(localStorage).filter(k => k.startsWith('docket_'+(prefix||''))).map(k => k.replace('docket_',''));
+    return { keys };
+  }
+};
+
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+const todayStr = () => new Date().toISOString().slice(0,10);
+
+/* ---------------- Storage ---------------- */
+async function loadState(){
+  try{
+    const r = await storage.get('docket:settings');
+    if(r && r.value) Object.assign(state.settings, JSON.parse(r.value));
+  }catch(e){}
+  try{
+    const r = await storage.get('docket:tasks');
+    if(r && r.value) state.tasks = JSON.parse(r.value);
+  }catch(e){}
+  try{
+    const r = await storage.get('docket:theme');
+    if(r && r.value) state.theme = r.value;
+  }catch(e){}
+  document.body.setAttribute('data-theme', state.theme);
+  state.loaded = true;
+  render();
+  if(state.settings.sheetUrl) syncFromSheet();
+}
+async function persistSettings(){
+  try{ await storage.set('docket:settings', JSON.stringify(state.settings)); }catch(e){}
+}
+async function persistTasksCache(){
+  try{ await storage.set('docket:tasks', JSON.stringify(state.tasks)); }catch(e){}
+}
+
+/* ---------------- Sheet sync ---------------- */
+function normalizeRow(row){
+  return {
+    id: String(row.id || uid()),
+    title: row.title || 'Untitled',
+    description: row.description || '',
+    category: row.category || 'Other',
+    priority: row.priority || 'Medium',
+    status: row.status || 'todo',
+    startDate: row.startDate || '',
+    dueDate: row.dueDate || '',
+    deadline: row.deadline || '',
+    createdAt: row.createdAt || new Date().toISOString()
+  };
+}
+
+async function syncFromSheet(){
+  if(!state.settings.sheetUrl) return;
+  state.syncing = true; render();
+  try{
+    const res = await fetch(state.settings.sheetUrl, { method:'GET' });
+    if(!res.ok) throw new Error('bad response');
+    const data = await res.json();
+    if(Array.isArray(data)){
+      state.tasks = data.map(normalizeRow);
+      state.connected = true;
+      persistTasksCache();
+    }
+  }catch(e){
+    state.connected = false;
+  }
+  state.syncing = false; render();
+}
+
+async function sheetCall(payload){
+  if(!state.settings.sheetUrl) return;
+  try{
+    await fetch(state.settings.sheetUrl, {
+      method:'POST',
+      headers:{ 'Content-Type':'text/plain;charset=utf-8' },
+      body: JSON.stringify(payload)
+    });
+    state.connected = true;
+  }catch(e){
+    state.connected = false;
+  }
+  render();
+}
+
+/* ---------------- Task CRUD ---------------- */
+function learnCategory(cat){
+  if(!cat) return;
+  const exists = state.settings.categories.some(c => c.toLowerCase() === cat.toLowerCase());
+  if(!exists){
+    state.settings.categories.push(cat);
+    persistSettings();
+  }
+}
+
+async function addTask(partial){
+  const task = normalizeRow(Object.assign({ id: uid(), createdAt: new Date().toISOString() }, partial));
+  learnCategory(task.category);
+  state.tasks.unshift(task);
+  render();
+  persistTasksCache();
+  sheetCall({ action:'add', task });
+  return task;
+}
+async function updateTask(task){
+  learnCategory(task.category);
+  const i = state.tasks.findIndex(t => t.id === task.id);
+  if(i>-1) state.tasks[i] = task;
+  render();
+  persistTasksCache();
+  sheetCall({ action:'update', task });
+}
+async function deleteTask(id){
+  state.tasks = state.tasks.filter(t => t.id !== id);
+  render();
+  persistTasksCache();
+  sheetCall({ action:'delete', id });
+}
+function toggleDone(id){
+  const t = state.tasks.find(x => x.id === id);
+  if(!t) return;
+  t.status = t.status === 'done' ? 'todo' : 'done';
+  updateTask(t);
+}
+
+/* ---------------- Urgency / grouping ---------------- */
+function urgencyOf(task){
+  if(task.status === 'done') return 'done';
+  const critical = task.deadline || task.dueDate || task.startDate;
+  if(!critical) return 'none';
+  const today = todayStr();
+  if(critical < today) return 'overdue';
+  if(critical === today) return 'today';
+  const diff = Math.ceil((new Date(critical) - new Date(today)) / 86400000);
+  if(diff <= 3) return 'soon';
+  return 'later';
+}
+const URGENCY_COLS = [
+  {key:'overdue', label:'Overdue', color:'var(--danger)'},
+  {key:'today', label:'Today', color:'var(--warn)'},
+  {key:'soon', label:'Next 3 days', color:'var(--accent)'},
+  {key:'later', label:'Upcoming', color:'var(--muted)'},
+  {key:'none', label:'No date', color:'var(--border-strong)'},
+];
+const PRIORITY_COLS = [
+  {key:'High', label:'High priority', color:'var(--danger)'},
+  {key:'Medium', label:'Medium priority', color:'var(--warn)'},
+  {key:'Low', label:'Low priority', color:'var(--good)'},
+];
+const CATEGORY_PALETTE = ['#5B8DEF','#E0A63C','#4FA97C','#C77DFF','#4FC1E9','#E2574C','#F2A65A','#7FD8A6'];
+function categoryColor(cat){
+  const idx = state.settings.categories.indexOf(cat);
+  return CATEGORY_PALETTE[(idx < 0 ? 0 : idx) % CATEGORY_PALETTE.length];
+}
+
+function sortKey(t){
+  return t.deadline || t.dueDate || t.startDate || '9999-99-99';
+}
+
+function groupTasks(){
+  const active = state.tasks.filter(t => t.status !== 'done').sort((a,b)=> sortKey(a) < sortKey(b) ? -1 : 1);
+  const done = state.tasks.filter(t => t.status === 'done');
+  const groups = {};
+  if(state.view === 'urgency'){
+    URGENCY_COLS.forEach(c => groups[c.key] = []);
+    active.forEach(t => groups[urgencyOf(t)].push(t));
+    groups.done = done;
+    return { cols: URGENCY_COLS.concat([{key:'done', label:'Done', color:'var(--good)'}]), groups };
+  } else if(state.view === 'category'){
+    const cats = Array.from(new Set(active.map(t => t.category))).sort();
+    const cols = cats.map(c => ({ key:c, label:c, color:categoryColor(c) }));
+    cats.forEach(c => groups[c] = []);
+    active.forEach(t => groups[t.category].push(t));
+    groups.done = done;
+    return { cols: cols.concat([{key:'done', label:'Done', color:'var(--good)'}]), groups };
+  } else {
+    PRIORITY_COLS.forEach(c => groups[c.key] = []);
+    active.forEach(t => (groups[t.priority] || (groups[t.priority]=[])).push(t));
+    groups.done = done;
+    return { cols: PRIORITY_COLS.concat([{key:'done', label:'Done', color:'var(--good)'}]), groups };
+  }
+}
+
+/* ---------------- Local fallback parser (no AI) ---------------- */
+function quickParseTask(text){
+  const t = text.trim();
+  const lower = t.toLowerCase();
+  const today = new Date();
+  const fmt = (d) => d.toISOString().slice(0,10);
+  let dueDate = '';
+
+  const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+  const inDays = lower.match(/in (\d+) days?/);
+  const nextDay = lower.match(/next (sunday|monday|tuesday|wednesday|thursday|friday|saturday)/);
+  const isoDate = lower.match(/\b(\d{4}-\d{2}-\d{2})\b/);
+
+  if(lower.includes('today')){
+    dueDate = fmt(today);
+  } else if(lower.includes('tomorrow')){
+    const d = new Date(today); d.setDate(d.getDate()+1); dueDate = fmt(d);
+  } else if(isoDate){
+    dueDate = isoDate[1];
+  } else if(inDays){
+    const d = new Date(today); d.setDate(d.getDate()+parseInt(inDays[1],10)); dueDate = fmt(d);
+  } else if(nextDay){
+    const target = days.indexOf(nextDay[1]);
+    const d = new Date(today);
+    let diff = (target - d.getDay() + 7) % 7; if(diff === 0) diff = 7;
+    d.setDate(d.getDate()+diff); dueDate = fmt(d);
+  } else {
+    const bareDay = days.find(dy => lower.includes(dy));
+    if(bareDay){
+      const target = days.indexOf(bareDay);
+      const d = new Date(today);
+      let diff = (target - d.getDay() + 7) % 7; if(diff === 0) diff = 7;
+      d.setDate(d.getDate()+diff); dueDate = fmt(d);
+    }
+  }
+
+  let priority = 'Medium';
+  if(/urgent|asap|high priority|important|critical/i.test(t)) priority = 'High';
+  else if(/low priority|whenever|no rush|someday/i.test(t)) priority = 'Low';
+
+  const category = state.settings.categories.find(c => lower.includes(c.toLowerCase())) || state.settings.categories[0] || 'Other';
+
+  return {
+    title: t.length > 90 ? t.slice(0,90) + '…' : t,
+    description: 'Added without AI assistance — please review the details.',
+    category, priority, startDate:'', dueDate, deadline:''
+  };
+}
+
+/* ---------------- Gemini ---------------- */
+function buildSystemPrompt(){
+  const cats = state.settings.categories.join(', ');
+  const openTasks = state.tasks.filter(t=>t.status!=='done').slice(0,25)
+    .map(t => `- [${t.id}] "${t.title}" priority:${t.priority} category:${t.category} start:${t.startDate||'-'} due:${t.dueDate||'-'} deadline:${t.deadline||'-'}`)
+    .join('\n') || '(none)';
+  const langLine = state.settings.language === 'bg'
+    ? 'Always write "reply", and the task\'s "title"/"description", in Bulgarian — even if the user writes in another language.'
+    : state.settings.language === 'en'
+    ? 'Always write "reply", and the task\'s "title"/"description", in English — even if the user writes in another language.'
+    : 'Write "reply", and the task\'s "title"/"description", in the same language the user\'s message is written in.';
+  return `You are the assistant inside a to-do app called Docket. Today's date is ${todayStr()} (${new Date().toLocaleDateString('en-US',{weekday:'long'})}).
+Existing categories: ${cats}. You may reuse one or invent a short new one if nothing fits (write new category names in the same language rule below).
+${langLine}
+Current open tasks:
+${openTasks}
+
+The user will send one message. Decide whether it describes a NEW TASK to capture, or is a QUESTION/comment about existing tasks, or general chat.
+
+Respond with ONLY a JSON object, no markdown fences, matching exactly this shape:
+{
+  "action": "add_task" | "none",
+  "task": {
+    "title": string,
+    "description": string,
+    "category": string,
+    "priority": "High" | "Medium" | "Low",
+    "startDate": "YYYY-MM-DD" or "",
+    "dueDate": "YYYY-MM-DD" or "",
+    "deadline": "YYYY-MM-DD" or ""
+  },
+  "reply": string
+}
+Rules: use action "add_task" only when the user is asking you to capture/add/remember a task. Resolve relative dates ("tomorrow", "next friday", "in 2 weeks") into real dates using today's date above. Infer priority from urgency language (ASAP/urgent -> High) or the presence of a deadline, default to "Medium" if unclear. If no dates are mentioned leave date fields as "". Omit the "task" key entirely (or leave it empty) when action is "none". Keep "reply" short, warm, and specific (one or two sentences), written to the user directly.`;
+}
+
+/* ---------------- AI providers ---------------- */
+function extractJson(raw){
+  try{ return JSON.parse(raw); }catch(e){}
+  const match = raw.match(/\{[\s\S]*\}/);
+  if(match){ try{ return JSON.parse(match[0]); }catch(e){} }
+  return { action:'none', reply: raw };
+}
+
+async function callGemini(model, systemPrompt, userText){
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent?key=${encodeURIComponent(state.settings.geminiKey)}`;
+  const body = {
+    contents: [{ role:'user', parts:[{ text: systemPrompt + '\n\nUser message: ' + userText }] }],
+    generationConfig: { responseMimeType: 'application/json' }
+  };
+  const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message || 'Gemini error');
+  const raw = data.candidates?.[0]?.content?.parts?.[0]?.text || '{}';
+  return extractJson(raw);
+}
+
+async function callOpenAiCompatible(baseUrl, apiKey, model, systemPrompt, userText){
+  const headers = { 'Content-Type':'application/json' };
+  if(apiKey) headers['Authorization'] = 'Bearer ' + apiKey;
+  const body = {
+    model,
+    messages: [
+      { role:'system', content: systemPrompt },
+      { role:'user', content: userText }
+    ],
+    response_format: { type: 'json_object' }
+  };
+  let res;
+  try{
+    res = await fetch(baseUrl, { method:'POST', headers, body: JSON.stringify(body) });
+  }catch(e){
+    throw new Error('Could not reach ' + baseUrl + ' — is it running and reachable from this browser?');
+  }
+  const contentType = res.headers.get('content-type') || '';
+  if(!contentType.includes('json')){
+    throw new Error(`${baseUrl} did not return JSON (status ${res.status}) — the endpoint likely isn't deployed there yet.`);
+  }
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message || (typeof data.error === 'string' ? data.error : 'Request failed'));
+  const raw = data.choices?.[0]?.message?.content || '{}';
+  return extractJson(raw);
+}
+
+/* Returns [{label, run: () => Promise<parsed>}] — the ordered chain to try for the current provider */
+function buildProviderChain(systemPrompt, userText){
+  const s = state.settings;
+  if(s.provider === 'groq'){
+    return [{ label: s.groqModel, run: () => callOpenAiCompatible('https://api.groq.com/openai/v1/chat/completions', s.groqKey, s.groqModel, systemPrompt, userText) }];
+  }
+  if(s.provider === 'local'){
+    return [{ label: s.localModel, run: () => callOpenAiCompatible(s.localUrl, '', s.localModel, systemPrompt, userText) }];
+  }
+  if(s.provider === 'demo'){
+    return [{ label: 'demo', run: () => callOpenAiCompatible(s.demoUrl, '', 'server-side', systemPrompt, userText) }];
+  }
+  // gemini (default): primary + fallback models
+  const models = [s.model].concat((s.fallbackModels || '').split(',').map(x=>x.trim()).filter(Boolean));
+  return models.map(model => ({ label: model, run: () => callGemini(model, systemPrompt, userText) }));
+}
+
+async function sendChat(text){
+  if(!text.trim()) return;
+  const s = state.settings;
+  const providerReady = s.provider === 'gemini' ? !!s.geminiKey : s.provider === 'groq' ? !!s.groqKey : s.provider === 'demo' ? !!s.demoUrl : !!s.localUrl;
+  if(!providerReady){
+    state.chat.push({role:'user', text});
+    state.chat.push({role:'ai', error:true, text:'Set up your AI provider in Settings first, then I can help.'});
+    render();
+    return;
+  }
+  state.chat.push({role:'user', text});
+  state.chatBusy = true;
+  render();
+
+  const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+  const isOverload = (msg) => /overload|high demand|unavailable|503|429/i.test(msg || '');
+  const systemPrompt = buildSystemPrompt();
+  const chain = buildProviderChain(systemPrompt, text);
+
+  let lastErr = null, succeeded = false;
+  for(let i = 0; i < chain.length && !succeeded; i++){
+    for(let attempt = 0; attempt < 2; attempt++){
+      try{
+        if(attempt > 0 || i > 0){
+          state.chat.push({role:'ai', text: `Busy — trying ${chain[i].label}…`, transient:true});
+          render();
+          await sleep(600 * (attempt+1));
+        }
+        const parsed = await chain[i].run();
+        state.chat = state.chat.filter(m => !m.transient);
+        if(parsed.action === 'add_task' && parsed.task && parsed.task.title){
+          await addTask(parsed.task);
+        }
+        state.chat.push({role:'ai', text: parsed.reply || 'Done.'});
+        succeeded = true;
+        lastErr = null;
+        break;
+      }catch(e){
+        lastErr = e;
+        if(!isOverload(e.message)) break;
+      }
+    }
+  }
+  state.chat = state.chat.filter(m => !m.transient);
+
+  if(!succeeded){
+    if(lastErr && isOverload(lastErr.message)){
+      const task = quickParseTask(text);
+      await addTask(task);
+      state.chat.push({role:'ai', text: `Every model I tried is busy, so I added "${task.title}" with a quick local parse instead — worth double-checking its details.`});
+    } else if(lastErr){
+      state.chat.push({role:'ai', error:true, text: 'Could not reach the AI (' + lastErr.message + '). Check your provider settings.'});
+    }
+  }
+  state.chatBusy = false;
+  render();
+}
+
+/* ---------------- Rendering ---------------- */
+const el = document.getElementById('app');
+
+function icon(name){
+  const icons = {
+    settings:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06A1.65 1.65 0 005 15a1.65 1.65 0 00-1.51-1H3.4a2 2 0 010-4h.09A1.65 1.65 0 005 9a1.65 1.65 0 00-.33-1.82l-.06-.06A2 2 0 117.44 4.3l.06.06A1.65 1.65 0 009.3 4.7 1.65 1.65 0 0011 3.4V3.4a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06A1.65 1.65 0 0019.3 9c.13.44.4.83.76 1.09.28.2.6.32.94.36H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>',
+    sync:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 12a9 9 0 11-3-6.7"/><path d="M21 3v6h-6"/></svg>',
+    check:'<svg viewBox="0 0 24 24" fill="none" stroke="#0B0E13" stroke-width="3"><path d="M4 12l5 5L20 6"/></svg>',
+    edit:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></svg>',
+    trash:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M6 6l1 14h10l1-14"/></svg>',
+    send:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 2L11 13"/><path d="M22 2l-7 20-4-9-9-4z"/></svg>',
+    plus:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>',
+    sun:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="4.5"/><path d="M12 2.5v2.5M12 19v2.5M4.6 4.6l1.8 1.8M17.6 17.6l1.8 1.8M2.5 12H5M19 12h2.5M4.6 19.4l1.8-1.8M17.6 6.4l1.8-1.8"/></svg>',
+    moon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 14.5A8.5 8.5 0 019.5 4 8.5 8.5 0 1020 14.5z"/></svg>'
+  };
+  return icons[name] || '';
+}
+
+function esc(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function dateTag(label, val, cls){
+  if(!val) return '';
+  return `<span class="tag date ${cls}">${label} ${esc(val)}</span>`;
+}
+
+function renderCard(t){
+  const urg = urgencyOf(t);
+  const urgCls = urg==='overdue'?'overdue':urg==='today'?'today':urg==='soon'?'soon':'later';
+  const done = t.status === 'done';
+  return `
+  <div class="card pr-${esc(t.priority)} ${done?'done':''}" data-id="${t.id}">
+    <div class="card-top">
+      <div class="check ${done?'done':''}" data-action="toggle" data-id="${t.id}">${icon('check')}</div>
+      <div class="card-title">${esc(t.title)}</div>
+      <div class="card-actions">
+        <button data-action="edit" data-id="${t.id}" title="Edit">${icon('edit')}</button>
+        <button data-action="delete" data-id="${t.id}" title="Delete">${icon('trash')}</button>
+      </div>
+    </div>
+    ${t.description ? `<div class="card-desc">${esc(t.description)}</div>` : ''}
+    <div class="card-meta">
+      <span class="tag cat">${esc(t.category)}</span>
+      ${dateTag('Start', t.startDate, 'later')}
+      ${dateTag('Due', t.dueDate, urgCls)}
+      ${dateTag('Deadline', t.deadline, urgCls)}
+    </div>
+  </div>`;
+}
+
+function renderBoard(){
+  const { cols, groups } = groupTasks();
+  return `<div class="columns">
+    ${cols.map(c => `
+      <div class="col">
+        <div class="col-head">
+          <span class="swatch" style="background:${c.color}"></span>
+          <h3>${c.label}</h3>
+          <span class="count">${groups[c.key].length}</span>
+        </div>
+        <div class="col-body">
+          ${groups[c.key].length ? groups[c.key].map(renderCard).join('') : `<div class="col-empty">Nothing here</div>`}
+        </div>
+      </div>`).join('')}
+  </div>`;
+}
+
+function renderChat(){
+  if(state.chat.length === 0){
+    return `<div class="chat-empty">Tell me a task in plain language — "email Sara the invoice by Friday, high priority" — and I'll add and file it for you. You can also ask me things like "what's due today?"</div>`;
+  }
+  return state.chat.map(m => `<div class="msg ${m.role} ${m.error?'error':''}">${esc(m.text)}</div>`).join('');
+}
+
+function renderSettingsModal(){
+  const s = state.settings;
+  const tab = state.settingsTab;
+  const appsScript = `function doGet(e) {
+  var sheet = getSheet_();
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var rows = data.slice(1).map(function(row){
+    var obj = {};
+    headers.forEach(function(h,i){ obj[h] = row[i]; });
+    return obj;
+  });
+  return ContentService.createTextOutput(JSON.stringify(rows))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function doPost(e) {
+  var body = JSON.parse(e.postData.contents);
+  var sheet = getSheet_();
+  var headers = sheet.getDataRange().getValues()[0];
+
+  if (body.action === 'add') {
+    var row = headers.map(function(h){ return body.task[h] !== undefined ? body.task[h] : ''; });
+    sheet.appendRow(row);
+  } else if (body.action === 'update') {
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(body.task.id)) {
+        var row = headers.map(function(h){ return body.task[h] !== undefined ? body.task[h] : ''; });
+        sheet.getRange(i+1, 1, 1, row.length).setValues([row]);
+        break;
+      }
+    }
+  } else if (body.action === 'delete') {
+    var data = sheet.getDataRange().getValues();
+    for (var i = 1; i < data.length; i++) {
+      if (String(data[i][0]) === String(body.id)) {
+        sheet.deleteRow(i+1);
+        break;
+      }
+    }
+  }
+  return ContentService.createTextOutput(JSON.stringify({success:true}))
+    .setMimeType(ContentService.MimeType.JSON);
+}
+
+function getSheet_() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  var sheet = ss.getSheetByName('Tasks');
+  if (!sheet) {
+    sheet = ss.insertSheet('Tasks');
+    sheet.appendRow(['id','title','description','category','priority','status','startDate','dueDate','deadline','createdAt']);
+  }
+  return sheet;
+}`;
+
+  return `
+  <div class="overlay" id="overlay-settings">
+    <div class="modal wide">
+      <div class="modal-head"><h2>Settings</h2><button class="icon-btn" data-action="close-modal">&times;</button></div>
+      <div class="tabs">
+        <div class="tab ${tab==='connect'?'active':''}" data-action="settings-tab" data-tab="connect">Connect</div>
+        <div class="tab ${tab==='sheet'?'active':''}" data-action="settings-tab" data-tab="sheet">Sheet setup</div>
+      </div>
+      <div class="modal-body">
+        ${tab === 'connect' ? `
+          <div class="field">
+            <label>AI provider</label>
+            <select id="in-provider">
+              <option value="gemini" ${s.provider==='gemini'?'selected':''}>Gemini (Google, cloud)</option>
+              <option value="groq" ${s.provider==='groq'?'selected':''}>Groq (free, cloud, fast)</option>
+              <option value="demo" ${s.provider==='demo'?'selected':''}>Demo (shared, no key needed — for guests)</option>
+              <option value="local" ${s.provider==='local'?'selected':''}>Local model (Ollama / LM Studio, on this device)</option>
+            </select>
+          </div>
+          ${s.provider === 'gemini' ? `
+          <div class="field">
+            <label>Gemini API key</label>
+            <input type="password" id="in-gemini-key" value="${esc(s.geminiKey)}" placeholder="Paste your Gemini API key">
+            <div class="hint">Get one free at <a href="https://aistudio.google.com/apikey" target="_blank">aistudio.google.com/apikey</a>. Stored only on this device.</div>
+          </div>
+          <div class="field">
+            <label>Gemini model</label>
+            <input type="text" id="in-gemini-model" value="${esc(s.model)}" placeholder="gemini-3.6-flash">
+          </div>
+          <div class="field">
+            <label>Fallback models (used if the main one is overloaded)</label>
+            <input type="text" id="in-fallback-models" value="${esc(s.fallbackModels || '')}" placeholder="gemini-3.5-flash-lite, gemini-3.1-flash-lite">
+          </div>
+          ` : ''}
+          ${s.provider === 'groq' ? `
+          <div class="field">
+            <label>Groq API key</label>
+            <input type="password" id="in-groq-key" value="${esc(s.groqKey)}" placeholder="Paste your Groq API key">
+            <div class="hint">Free, no card required — get one at <a href="https://console.groq.com/keys" target="_blank">console.groq.com/keys</a>. Groq runs open models on custom chips, so it's fast and rarely queues.</div>
+          </div>
+          <div class="field">
+            <label>Groq model</label>
+            <input type="text" id="in-groq-model" value="${esc(s.groqModel)}" placeholder="openai/gpt-oss-120b">
+            <div class="hint">Other options: llama-3.3-70b-versatile, llama-3.1-8b-instant.</div>
+          </div>
+          ` : ''}
+          ${s.provider === 'demo' ? `
+          <div class="field">
+            <label>Demo function URL</label>
+            <input type="text" id="in-demo-url" value="${esc(s.demoUrl)}" placeholder="/.netlify/functions/chat">
+          </div>
+          <div class="hint">
+            This calls a small server-side proxy you deploy alongside this page — it holds your real API key and never exposes it to whoever opens this link. Good for sending a demo link to someone without them needing any key at all. See the included setup guide for the one-time deploy steps. Leave the Google Sheet URL below empty for demo builds — visitors' tasks then stay only in their own browser, never touching your real sheet.
+          </div>
+          ` : ''}
+          ${s.provider === 'local' ? `
+          <div class="field">
+            <label>Local server URL</label>
+            <input type="text" id="in-local-url" value="${esc(s.localUrl)}" placeholder="http://localhost:11434/v1/chat/completions">
+          </div>
+          <div class="field">
+            <label>Local model name</label>
+            <input type="text" id="in-local-model" value="${esc(s.localModel)}" placeholder="llama3.1">
+          </div>
+          <div class="hint">
+            Runs entirely on your machine, no API key, no rate limits, works offline. Install <a href="https://ollama.com" target="_blank">Ollama</a>, run <code>ollama pull llama3.1</code>, then start it with CORS open so this browser page can reach it:<br><br>
+            macOS/Linux: <code>OLLAMA_ORIGINS=* ollama serve</code><br>
+            Windows (PowerShell): <code>$env:OLLAMA_ORIGINS="*"; ollama serve</code><br><br>
+            Smaller machines: try a lighter model like <code>llama3.2</code> or <code>phi3.5</code>. This only works while Ollama is running on the device you're using this app from — if this app is open on your phone, point the URL at your computer's LAN IP instead of localhost.
+          </div>
+          ` : ''}
+          <div class="field">
+            <label>Task &amp; reply language</label>
+            <select id="in-language">
+              <option value="auto" ${s.language==='auto'?'selected':''}>Auto — match whatever language I type in</option>
+              <option value="bg" ${s.language==='bg'?'selected':''}>Always Bulgarian</option>
+              <option value="en" ${s.language==='en'?'selected':''}>Always English</option>
+            </select>
+            <div class="hint">Controls the language of the AI's chat replies and the task titles/descriptions it writes.</div>
+          </div>
+          <div class="field">
+            <label>Google Apps Script Web App URL</label>
+            <input type="text" id="in-sheet-url" value="${esc(s.sheetUrl)}" placeholder="https://script.google.com/macros/s/.../exec">
+            <div class="hint">See the "Sheet setup" tab for the one-time setup script.</div>
+          </div>
+          <div class="field">
+            <label>Categories (starter list — grows automatically as you use new ones)</label>
+            <input type="text" id="in-categories" value="${esc(s.categories.join(', '))}">
+          </div>
+          ${state.statusMsg ? `<div class="status-msg ${state.statusMsg.ok?'ok':'err'}">${esc(state.statusMsg.text)}</div>` : ''}
+        ` : `
+          <div class="hint">
+            Docket stores tasks in a Google Sheet through a small Apps Script "web app" you deploy yourself &mdash; no server needed, and your data stays in your own Google account.
+          </div>
+          <ol class="steps">
+            <li>Create a new Google Sheet (any name).</li>
+            <li>Open <b>Extensions &rarr; Apps Script</b>, delete the placeholder code, and paste the script below.</li>
+            <li>Click <b>Deploy &rarr; New deployment</b>, choose type <b>Web app</b>.</li>
+            <li>Set "Execute as" to <b>Me</b> and "Who has access" to <b>Anyone</b>, then Deploy and authorize it.</li>
+            <li>Copy the Web App URL it gives you and paste it into the Connect tab.</li>
+          </ol>
+          <div class="code-block" id="apps-script-code">${esc(appsScript)}</div>
+          <button class="btn" data-action="copy-script">Copy script</button>
+        `}
+      </div>
+      <div class="modal-foot">
+        ${tab === 'connect' ? `
+          <button class="btn" data-action="test-connection">Test connection</button>
+          <button class="btn primary" data-action="save-settings">Save</button>
+        ` : `<button class="btn primary" data-action="close-modal">Done</button>`}
+      </div>
+    </div>
+  </div>`;
+}
+
+function renderTaskModal(){
+  const t = state.editingTask || { id:'', title:'', description:'', category: state.settings.categories[0] || 'Other', priority:'Medium', status:'todo', startDate:'', dueDate:'', deadline:'' };
+  const catOptions = state.settings.categories.map(c => `<option value="${esc(c)}">`).join('');
+  return `
+  <div class="overlay" id="overlay-task">
+    <div class="modal">
+      <div class="modal-head"><h2>${t.id ? 'Edit entry' : 'New entry'}</h2><button class="icon-btn" data-action="close-modal">&times;</button></div>
+      <div class="modal-body">
+        <div class="field"><label>Title</label><input type="text" id="tf-title" value="${esc(t.title)}" placeholder="What needs doing?"></div>
+        <div class="field"><label>Notes</label><textarea id="tf-desc" rows="2" placeholder="Optional detail">${esc(t.description)}</textarea></div>
+        <div class="row2">
+          <div class="field"><label>Category</label>
+            <input type="text" id="tf-category" list="tf-category-list" value="${esc(t.category)}" placeholder="e.g. Work">
+            <datalist id="tf-category-list">${catOptions}</datalist>
+          </div>
+          <div class="field"><label>Priority</label>
+            <select id="tf-priority">
+              <option value="High" ${t.priority==='High'?'selected':''}>High</option>
+              <option value="Medium" ${t.priority==='Medium'?'selected':''}>Medium</option>
+              <option value="Low" ${t.priority==='Low'?'selected':''}>Low</option>
+            </select>
+          </div>
+        </div>
+        <div class="row3">
+          <div class="field"><label>Start date</label><input type="date" id="tf-start" value="${esc(t.startDate)}"></div>
+          <div class="field"><label>Due date</label><input type="date" id="tf-due" value="${esc(t.dueDate)}"></div>
+          <div class="field"><label>Deadline</label><input type="date" id="tf-deadline" value="${esc(t.deadline)}"></div>
+        </div>
+      </div>
+      <div class="modal-foot">
+        ${t.id ? `<button class="btn" data-action="delete-task" data-id="${t.id}" style="margin-right:auto;color:var(--danger);">Delete</button>` : ''}
+        <button class="btn" data-action="close-modal">Cancel</button>
+        <button class="btn primary" data-action="save-task" data-id="${t.id}">${t.id ? 'Save changes' : 'Add entry'}</button>
+      </div>
+    </div>
+  </div>`;
+}
+
+function render(){
+  if(!state.loaded){
+    el.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;height:100vh;color:var(--muted);">Loading Docket&hellip;</div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="topbar">
+      <div class="brand"><h1>Docket</h1><span class="tag">a running log of what's next</span></div>
+      <div class="spacer"></div>
+      <div class="view-toggle">
+        <button data-action="view" data-view="urgency" class="${state.view==='urgency'?'active':''}">By date</button>
+        <button data-action="view" data-view="priority" class="${state.view==='priority'?'active':''}">By priority</button>
+        <button data-action="view" data-view="category" class="${state.view==='category'?'active':''}">By category</button>
+      </div>
+      <button class="sync-pill" data-action="sync">
+        <span class="dot ${state.syncing?'spin':(state.connected?'on':'')}"></span>
+        ${state.syncing ? 'Syncing…' : (state.settings.sheetUrl ? (state.connected ? 'Synced' : 'Not connected') : 'Local only')}
+      </button>
+      <button class="btn primary" data-action="new-task">${icon('plus')} Add task</button>
+      <button class="icon-btn" data-action="toggle-theme" title="Toggle theme">${icon(state.theme==='light'?'moon':'sun')}</button>
+      <button class="icon-btn" data-action="open-settings" title="Settings">${icon('settings')}</button>
+    </div>
+    <div class="main">
+      <div class="chat-pane">
+        <div class="chat-head"><h2>Assistant</h2><p>Describe a task in your own words — I'll structure and file it.</p></div>
+        <div class="chat-log" id="chat-log">${renderChat()}</div>
+        <div class="chat-input">
+          <textarea id="chat-text" placeholder="e.g. Call the dentist next Tuesday" ${state.chatBusy?'disabled':''}></textarea>
+          <button class="icon-btn" data-action="send-chat" ${state.chatBusy?'disabled':''}>${icon('send')}</button>
+        </div>
+      </div>
+      <div class="board">${renderBoard()}</div>
+    </div>
+    ${state.modal === 'settings' ? renderSettingsModal() : ''}
+    ${state.modal === 'task' ? renderTaskModal() : ''}
+  `;
+  attachHandlers();
+  const log = document.getElementById('chat-log');
+  if(log) log.scrollTop = log.scrollHeight;
+}
+
+/* ---------------- Event handling ---------------- */
+function attachHandlers(){
+  el.querySelectorAll('[data-action]').forEach(node => {
+    const action = node.getAttribute('data-action');
+    node.onclick = async (ev) => {
+      switch(action){
+        case 'view':
+          state.view = node.getAttribute('data-view'); render(); break;
+        case 'sync':
+          syncFromSheet(); break;
+        case 'toggle-theme': {
+          state.theme = state.theme === 'light' ? 'dark' : 'light';
+          document.body.setAttribute('data-theme', state.theme);
+          try{ await storage.set('docket:theme', state.theme); }catch(e){}
+          render();
+          break;
+        }
+        case 'new-task':
+          state.editingTask = null; state.modal = 'task'; render(); break;
+        case 'edit': {
+          const t = state.tasks.find(x => x.id === node.getAttribute('data-id'));
+          state.editingTask = t; state.modal = 'task'; render(); break;
+        }
+        case 'toggle':
+          toggleDone(node.getAttribute('data-id')); break;
+        case 'delete':
+          deleteTask(node.getAttribute('data-id')); break;
+        case 'delete-task':
+          deleteTask(node.getAttribute('data-id')); state.modal = null; render(); break;
+        case 'open-settings':
+          state.modal = 'settings'; state.statusMsg = null; render(); break;
+        case 'close-modal':
+          state.modal = null; state.statusMsg = null; render(); break;
+        case 'settings-tab':
+          state.settingsTab = node.getAttribute('data-tab'); render(); break;
+        case 'copy-script': {
+          const codeEl = document.getElementById('apps-script-code');
+          const text = codeEl ? codeEl.textContent : '';
+          try{
+            await navigator.clipboard.writeText(text);
+            node.textContent = 'Copied!';
+            setTimeout(()=>{ node.textContent = 'Copy script'; }, 1500);
+          }catch(e){
+            node.textContent = 'Select the box above and copy manually';
+          }
+          break;
+        }
+        case 'save-settings': {
+          const gi = (id) => document.getElementById(id);
+          state.settings.provider = gi('in-provider') ? gi('in-provider').value : state.settings.provider;
+          if(gi('in-gemini-key')) state.settings.geminiKey = gi('in-gemini-key').value.trim();
+          if(gi('in-gemini-model')) state.settings.model = gi('in-gemini-model').value.trim() || 'gemini-3.6-flash';
+          if(gi('in-fallback-models')) state.settings.fallbackModels = gi('in-fallback-models').value.trim();
+          if(gi('in-groq-key')) state.settings.groqKey = gi('in-groq-key').value.trim();
+          if(gi('in-groq-model')) state.settings.groqModel = gi('in-groq-model').value.trim() || 'openai/gpt-oss-120b';
+          if(gi('in-local-url')) state.settings.localUrl = gi('in-local-url').value.trim();
+          if(gi('in-local-model')) state.settings.localModel = gi('in-local-model').value.trim() || 'llama3.1';
+          if(gi('in-demo-url')) state.settings.demoUrl = gi('in-demo-url').value.trim() || '/.netlify/functions/chat';
+          if(gi('in-language')) state.settings.language = gi('in-language').value;
+          state.settings.sheetUrl = gi('in-sheet-url').value.trim();
+          state.settings.categories = gi('in-categories').value.split(',').map(s=>s.trim()).filter(Boolean);
+          await persistSettings();
+          state.modal = null;
+          render();
+          if(state.settings.sheetUrl) syncFromSheet();
+          break;
+        }
+        case 'test-connection': {
+          const url = document.getElementById('in-sheet-url').value.trim();
+          if(!url){ state.statusMsg = {ok:false, text:'Paste a Web App URL first.'}; render(); break; }
+          state.statusMsg = {ok:true, text:'Testing…'}; render();
+          try{
+            const res = await fetch(url);
+            const data = await res.json();
+            state.statusMsg = { ok:true, text:'Connected — found ' + (Array.isArray(data)?data.length:0) + ' row(s) in the sheet.' };
+          }catch(e){
+            state.statusMsg = { ok:false, text:'Could not reach that URL. Check the deployment is set to "Anyone" access.' };
+          }
+          render();
+          break;
+        }
+        case 'save-task': {
+          const id = node.getAttribute('data-id');
+          const payload = {
+            title: document.getElementById('tf-title').value.trim() || 'Untitled',
+            description: document.getElementById('tf-desc').value.trim(),
+            category: document.getElementById('tf-category').value,
+            priority: document.getElementById('tf-priority').value,
+            startDate: document.getElementById('tf-start').value,
+            dueDate: document.getElementById('tf-due').value,
+            deadline: document.getElementById('tf-deadline').value,
+            status: (state.editingTask && state.editingTask.status) || 'todo'
+          };
+          if(id){
+            await updateTask(Object.assign({}, state.editingTask, payload, {id}));
+          } else {
+            await addTask(payload);
+          }
+          state.modal = null; render();
+          break;
+        }
+        case 'send-chat': {
+          const box = document.getElementById('chat-text');
+          const text = box.value;
+          box.value = '';
+          await sendChat(text);
+          break;
+        }
+      }
+    };
+  });
+  const chatText = document.getElementById('chat-text');
+  if(chatText){
+    chatText.onkeydown = (e) => {
+      if(e.key === 'Enter' && !e.shiftKey){
+        e.preventDefault();
+        const text = chatText.value;
+        chatText.value = '';
+        sendChat(text);
+      }
+    };
+  }
+  const overlay1 = document.getElementById('overlay-settings');
+  if(overlay1) overlay1.addEventListener('click', (e) => { if(e.target === overlay1){ state.modal = null; render(); } });
+  const providerSel = document.getElementById('in-provider');
+  if(providerSel) providerSel.onchange = () => { state.settings.provider = providerSel.value; render(); };
+  const overlay2 = document.getElementById('overlay-task');
+  if(overlay2) overlay2.addEventListener('click', (e) => { if(e.target === overlay2){ state.modal = null; render(); } });
+}
+
+loadState();
+</script>
+</body>
+</html>
