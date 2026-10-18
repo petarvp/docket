@@ -136,6 +136,7 @@ function drawBoard() {
       currentView = 'archive';
       drawBoard();
     },
+    onQuickAdd: (categoryId) => openManualForm(root, activeCategories, { onCreate: createManualTask }, categoryId),
     onOpenSettings: () => {
       openSettingsMenu(root, {
         theme: getTheme(),

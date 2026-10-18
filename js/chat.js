@@ -1,5 +1,8 @@
 import { callScript } from './api.js';
 
+const ICON_SEND =
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
+
 export function openChat(root, ctx) {
   const state = { previousProposal: null, lastUserText: '', correctionRound: 0 };
 
@@ -14,7 +17,7 @@ export function openChat(root, ctx) {
       <div class="chat-messages"></div>
       <div class="chat-input-row">
         <textarea class="chat-input" placeholder="Постави имейл или напиши какво трябва да направиш..."></textarea>
-        <button class="chat-send primary">Изпрати</button>
+        <button class="chat-send" aria-label="Изпрати">${ICON_SEND}</button>
       </div>
       <button class="chat-manual-link">+ ръчно</button>
     </div>

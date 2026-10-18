@@ -74,6 +74,14 @@ export function renderArchiveView(root, { categories, tasks }, handlers) {
 }
 
 function wireCardEvents(columnsEl, tasks, handlers) {
+  columnsEl.querySelectorAll('.column-add').forEach((btn) => {
+    if (!handlers.onQuickAdd) {
+      btn.remove();
+      return;
+    }
+    btn.addEventListener('click', () => handlers.onQuickAdd(btn.dataset.categoryId));
+  });
+
   columnsEl.querySelectorAll('.task-card').forEach((el) => {
     const task = tasks.find((t) => t.id === el.dataset.taskId);
     if (!task) return;
@@ -135,7 +143,10 @@ function renderColumn(category, tasks) {
 
   return `
     <div class="column">
-      <h2>${escapeHtml(category.name)}</h2>
+      <div class="column-header">
+        <h2>${escapeHtml(category.name)}</h2>
+        <button class="column-add" data-category-id="${category.id}" aria-label="Добави задача в ${escapeHtml(category.name)}">+</button>
+      </div>
       <div class="cards">
         ${cardsHtml || '<p class="empty-hint">Няма задачи</p>'}
       </div>

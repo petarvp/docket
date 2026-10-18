@@ -56,7 +56,7 @@ export function openTaskDetail(root, task, ctx) {
   });
 }
 
-export function openManualForm(root, activeCategories, ctx) {
+export function openManualForm(root, activeCategories, ctx, preselectedCategoryId) {
   if (activeCategories.length === 0) {
     const overlay = document.createElement('div');
     overlay.className = 'task-overlay';
@@ -95,6 +95,11 @@ export function openManualForm(root, activeCategories, ctx) {
           </select>
         </label>
         <label>Срок <input class="f-due" type="date" /></label>
+        <div class="quick-chips">
+          <button type="button" class="chip" data-days="0">Днес</button>
+          <button type="button" class="chip" data-days="1">Утре</button>
+          <button type="button" class="chip" data-days="7">След седмица</button>
+        </div>
       </div>
       <div class="task-panel-footer">
         <button class="primary f-save">Добави</button>
@@ -102,6 +107,18 @@ export function openManualForm(root, activeCategories, ctx) {
     </div>
   `;
   root.appendChild(overlay);
+
+  if (preselectedCategoryId) {
+    overlay.querySelector('.f-category').value = preselectedCategoryId;
+  }
+
+  overlay.querySelectorAll('.chip').forEach((chip) => {
+    chip.addEventListener('click', () => {
+      overlay.querySelector('.f-due').value = isoDateIn(Number(chip.dataset.days));
+      overlay.querySelectorAll('.chip').forEach((c) => c.classList.remove('active'));
+      chip.classList.add('active');
+    });
+  });
 
   overlay.querySelector('.task-close').addEventListener('click', () => overlay.remove());
   overlay.querySelector('.f-save').addEventListener('click', () => {
@@ -119,6 +136,12 @@ export function openManualForm(root, activeCategories, ctx) {
     overlay.remove();
     ctx.onCreate(fields);
   });
+}
+
+function isoDateIn(days) {
+  const d = new Date();
+  d.setDate(d.getDate() + days);
+  return d.toISOString().slice(0, 10);
 }
 
 function isDone(task) {
