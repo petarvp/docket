@@ -549,10 +549,6 @@ button.primary:active {
   gap: 10px;
 }
 
-.chat-messages:empty {
-  display: none;
-}
-
 .chat-msg {
   max-width: 85%;
   padding: 10px 12px;
@@ -637,16 +633,6 @@ button.primary:active {
 .chat-send:disabled {
   opacity: 0.5;
   cursor: default;
-}
-
-.chat-manual-link {
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  font-size: 12px;
-  text-align: left;
-  padding: 2px 16px 14px;
-  cursor: pointer;
 }
 
 .chat-attach-btn {
@@ -1340,6 +1326,11 @@ button.secondary {
     font-weight: 700;
     font-size: 18px;
     letter-spacing: -0.02em;
+  }
+
+  .sidebar-close {
+    font-size: 28px;
+    line-height: 1;
   }
 
   .top-bar-title {

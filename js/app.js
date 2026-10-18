@@ -241,7 +241,6 @@ function drawBoard() {
             appState.tasks = [...appState.tasks, ...added.tasks];
             drawBoard();
           },
-          onManualAdd: () => openManualForm(root, activeCategories, { onCreate: createManualTask }),
         });
       },
       onToggleDone: toggleDone,
