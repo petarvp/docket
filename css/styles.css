@@ -1,0 +1,111 @@
+:root {
+  color-scheme: light;
+  --bg: #f5f5f7;
+  --surface: #ffffff;
+  --text: #1d1d1f;
+  --text-muted: #6e6e73;
+  --accent: #0a84ff;
+  --danger: #ff3b30;
+  --border: #e5e5ea;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+}
+
+.screen {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 32px 20px;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin: 0 0 16px;
+}
+
+.card-row {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.card {
+  background: var(--surface);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.card h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+label {
+  display: block;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+input {
+  display: block;
+  width: 100%;
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 15px;
+  background: var(--surface);
+  color: var(--text);
+}
+
+button.primary {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 12px 20px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.primary:active {
+  opacity: 0.85;
+}
+
+.hint {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.status {
+  margin-top: 12px;
+  font-size: 14px;
+  min-height: 20px;
+}
+
+.status.error {
+  color: var(--danger);
+}
+
+.status.success {
+  color: #30a46c;
+}
