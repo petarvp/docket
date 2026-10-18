@@ -1,5 +1,5 @@
-import { renderWelcome, renderSettings } from './settings.js';
-import { getSettings, isOnboarded, getSnapshot, saveSnapshot } from './store.js';
+import { renderWelcome, renderSettings, openSettingsMenu } from './settings.js';
+import { getSettings, isOnboarded, getSnapshot, saveSnapshot, getTheme, setTheme } from './store.js';
 import { callScript } from './api.js';
 import { renderBoard, renderArchiveView } from './board.js';
 import { openChat } from './chat.js';
@@ -11,6 +11,16 @@ const root = document.getElementById('app');
 
 const appState = { categories: [], tasks: [] };
 let currentView = 'board';
+
+function applyTheme(theme) {
+  if (theme === 'light' || theme === 'dark') {
+    document.documentElement.setAttribute('data-theme', theme);
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+}
+
+applyTheme(getTheme());
 
 async function start() {
   if (!(isOnboarded() && getSettings())) {
@@ -125,6 +135,15 @@ function drawBoard() {
     onOpenArchive: () => {
       currentView = 'archive';
       drawBoard();
+    },
+    onOpenSettings: () => {
+      openSettingsMenu(root, {
+        theme: getTheme(),
+        onThemeChange: (theme) => {
+          setTheme(theme);
+          applyTheme(theme);
+        },
+      });
     },
   });
 }

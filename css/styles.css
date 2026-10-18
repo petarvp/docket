@@ -2,11 +2,36 @@
   color-scheme: light;
   --bg: #f5f5f7;
   --surface: #ffffff;
+  --surface-translucent: rgba(255, 255, 255, 0.78);
   --text: #1d1d1f;
   --text-muted: #6e6e73;
   --accent: #0a84ff;
   --danger: #ff3b30;
   --border: #e5e5ea;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    color-scheme: dark;
+    --bg: #000000;
+    --surface: #1c1c1e;
+    --surface-translucent: rgba(28, 28, 30, 0.78);
+    --text: #f5f5f7;
+    --text-muted: #98989d;
+    --danger: #ff453a;
+    --border: #38383a;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --surface-translucent: rgba(28, 28, 30, 0.78);
+  --text: #f5f5f7;
+  --text-muted: #98989d;
+  --danger: #ff453a;
+  --border: #38383a;
 }
 
 * {
@@ -29,6 +54,7 @@ body {
 h1 {
   font-size: 28px;
   font-weight: 700;
+  letter-spacing: -0.02em;
   margin: 0 0 16px;
 }
 
@@ -136,6 +162,31 @@ button.primary:active {
   padding: 0;
 }
 
+.icon-button {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  transition: color 0.2s ease;
+}
+
+.icon-button svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+}
+
+.icon-button:hover {
+  color: var(--accent);
+}
+
 .board-columns {
   display: flex;
   flex-wrap: wrap;
@@ -153,7 +204,25 @@ button.primary:active {
 .column h2 {
   font-size: 16px;
   font-weight: 700;
+  letter-spacing: -0.01em;
   margin: 0 0 10px;
+}
+
+@media (max-width: 640px) {
+  .board-columns {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    margin: 0 -20px;
+    padding: 0 20px 8px;
+  }
+
+  .column {
+    width: auto;
+    flex: 0 0 85%;
+    scroll-snap-align: start;
+  }
 }
 
 .cards {
@@ -348,7 +417,9 @@ button.primary:active {
   height: 56px;
   border-radius: 50%;
   border: none;
-  background: var(--accent);
+  background: rgba(10, 132, 255, 0.88);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
   color: #fff;
   font-size: 28px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
@@ -373,7 +444,9 @@ button.primary:active {
 }
 
 .chat-panel {
-  background: var(--surface);
+  background: var(--surface-translucent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   width: 100%;
   max-width: 480px;
   max-height: 80vh;
@@ -485,7 +558,9 @@ button.primary:active {
 }
 
 .task-panel {
-  background: var(--surface);
+  background: var(--surface-translucent);
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
   width: 100%;
   max-width: 480px;
   max-height: 85vh;
@@ -650,4 +725,48 @@ button.secondary {
 
 .conflict-footer button {
   flex: 1;
+}
+
+/* Settings menu */
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.theme-options {
+  display: flex;
+  gap: 8px;
+}
+
+.theme-option {
+  flex: 1;
+  padding: 10px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.theme-option.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* Уважаваме system настройката за намалено движение: кратки cross-fade-ове
+   вместо плъзгане/пружини/завъртане. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

@@ -107,3 +107,44 @@ export function renderSettings(root, onSaved) {
     }
   });
 }
+
+const THEME_CHOICES = [
+  { value: 'system', label: 'Системна' },
+  { value: 'light', label: 'Светла' },
+  { value: 'dark', label: 'Тъмна' },
+];
+
+export function openSettingsMenu(root, { theme, onThemeChange }) {
+  const overlay = document.createElement('div');
+  overlay.className = 'task-overlay';
+  overlay.innerHTML = `
+    <div class="task-panel">
+      <div class="task-panel-header">
+        <span>Настройки</span>
+        <button class="task-close" aria-label="Затвори">×</button>
+      </div>
+      <div class="task-panel-body">
+        <p class="hint">Тема</p>
+        <div class="theme-options">
+          ${THEME_CHOICES.map((c) => `<button class="theme-option" data-theme="${c.value}">${c.label}</button>`).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+  root.appendChild(overlay);
+
+  const markActive = (current) => {
+    overlay.querySelectorAll('.theme-option').forEach((btn) => {
+      btn.classList.toggle('active', btn.dataset.theme === current);
+    });
+  };
+  markActive(theme);
+
+  overlay.querySelector('.task-close').addEventListener('click', () => overlay.remove());
+  overlay.querySelectorAll('.theme-option').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      onThemeChange(btn.dataset.theme);
+      markActive(btn.dataset.theme);
+    });
+  });
+}

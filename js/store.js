@@ -2,6 +2,7 @@ const SETTINGS_KEY = 'docket.settings';
 const ONBOARDED_KEY = 'docket.onboarded';
 const SNAPSHOT_KEY = 'docket.snapshot';
 const OUTBOX_KEY = 'docket.outbox';
+const THEME_KEY = 'docket.theme';
 
 export function getSettings() {
   try {
@@ -45,4 +46,12 @@ export function getOutbox() {
 
 export function saveOutbox(ops) {
   localStorage.setItem(OUTBOX_KEY, JSON.stringify(ops));
+}
+
+export function getTheme() {
+  return localStorage.getItem(THEME_KEY) || 'system';
+}
+
+export function setTheme(theme) {
+  localStorage.setItem(THEME_KEY, theme);
 }
