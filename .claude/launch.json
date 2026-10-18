@@ -4,8 +4,9 @@
     {
       "name": "docket-dev",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "8000"],
-      "port": 8000
+      "runtimeArgs": ["/Users/petarpetrov/Documents/Docket App/scripts/devserver.py"],
+      "port": 8000,
+      "autoPort": true
     }
   ]
 }
