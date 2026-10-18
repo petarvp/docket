@@ -1,16 +1,19 @@
 import { renderWelcome, renderSettings, openSettingsMenu } from './settings.js';
 import { getSettings, isOnboarded, getSnapshot, saveSnapshot, getTheme, setTheme } from './store.js';
 import { callScript } from './api.js';
-import { renderBoard, renderArchiveView } from './board.js';
+import { renderBoard, renderArchiveView, renderDateView } from './board.js';
+import { renderSidebar, ICON_MENU } from './sidebar.js';
 import { openChat } from './chat.js';
-import { openTaskDetail, openManualForm } from './task.js';
+import { openTaskDetail, openManualForm, openNewCategoryForm } from './task.js';
 import { showUndo } from './undo.js';
 import { initSync, isOnline, enqueue, flush, showConflictDialog } from './sync.js';
 
 const root = document.getElementById('app');
 
 const appState = { categories: [], tasks: [] };
-let currentView = 'board';
+let currentView = 'board'; // 'board' | 'archive'
+let boardFilter = { kind: 'kanban' }; // 'kanban' | { kind: 'date', range } | { kind: 'category', categoryId }
+let sidebarMobileOpen = false;
 
 function applyTheme(theme) {
   if (theme === 'light' || theme === 'dark') {
@@ -100,60 +103,123 @@ function handleConflicts(conflicts) {
 function drawBoard() {
   saveSnapshot(appState.categories, appState.tasks);
 
+  root.innerHTML = `
+    <div class="app-shell">
+      <button class="menu-toggle icon-button" aria-label="Меню">${ICON_MENU}</button>
+      <div class="sidebar-container ${sidebarMobileOpen ? 'mobile-open' : ''}" id="sidebar-container"></div>
+      <div class="board-area" id="board-area"></div>
+    </div>
+  `;
+
+  const sidebarContainer = root.querySelector('#sidebar-container');
+  const boardArea = root.querySelector('#board-area');
+
+  renderSidebar(
+    sidebarContainer,
+    {
+      categories: appState.categories,
+      activeView: currentView === 'board' && boardFilter.kind !== 'category' ? (boardFilter.kind === 'kanban' ? 'board' : boardFilter.range) : null,
+      activeCategoryId: boardFilter.kind === 'category' ? boardFilter.categoryId : null,
+    },
+    {
+      onSelectView: (viewId) => {
+        currentView = 'board';
+        boardFilter = viewId === 'board' ? { kind: 'kanban' } : { kind: 'date', range: viewId };
+        sidebarMobileOpen = false;
+        drawBoard();
+      },
+      onSelectCategory: (categoryId) => {
+        currentView = 'board';
+        boardFilter = { kind: 'category', categoryId };
+        sidebarMobileOpen = false;
+        drawBoard();
+      },
+      onAddCategory: () => openNewCategoryForm(root, { onCreate: createCategoryOnly }),
+      onClose: () => {
+        sidebarMobileOpen = false;
+        drawBoard();
+      },
+    }
+  );
+
+  root.querySelector('.menu-toggle').addEventListener('click', () => {
+    sidebarMobileOpen = true;
+    drawBoard();
+  });
+
   if (currentView === 'archive') {
-    drawArchive();
+    drawArchive(boardArea);
     return;
   }
 
-  const activeCategories = appState.categories.filter((c) => c.status === 'active');
+  if (boardFilter.kind === 'date') {
+    renderDateView(boardArea, appState, boardFilter.range, {
+      onToggleDone: toggleDone,
+      onOpenTask: (task) => {
+        openTaskDetail(root, task, { onUpdate: updateTask, onToggleDone: toggleDone, onDelete: deleteTask });
+      },
+      onOpenArchive: () => {
+        currentView = 'archive';
+        drawBoard();
+      },
+      onOpenSettings: () => openSettings(),
+    });
+    return;
+  }
 
-  renderBoard(root, appState, {
-    onOpenChat: () => {
-      if (!isOnline()) {
-        openManualForm(root, activeCategories, { onCreate: createManualTask });
-        return;
-      }
-      openChat(root, {
-        categories: appState.categories,
-        settings: getSettings(),
-        onConfirmed: (added) => {
-          appState.categories = [...appState.categories, ...added.categories];
-          appState.tasks = [...appState.tasks, ...added.tasks];
-          drawBoard();
-        },
-        onManualAdd: () => openManualForm(root, activeCategories, { onCreate: createManualTask }),
-      });
-    },
-    onToggleDone: toggleDone,
-    onOpenTask: (task) => {
-      openTaskDetail(root, task, {
-        onUpdate: updateTask,
-        onToggleDone: toggleDone,
-        onDelete: deleteTask,
-      });
-    },
-    onOpenArchive: () => {
-      currentView = 'archive';
-      drawBoard();
-    },
-    onQuickAdd: (categoryId) => openManualForm(root, activeCategories, { onCreate: createManualTask }, categoryId),
-    onOpenSettings: () => {
-      openSettingsMenu(root, {
-        theme: getTheme(),
-        onThemeChange: (theme) => {
-          setTheme(theme);
-          applyTheme(theme);
-        },
-      });
+  const boardCategories =
+    boardFilter.kind === 'category' ? appState.categories.filter((c) => c.id === boardFilter.categoryId) : appState.categories;
+  const activeCategories = boardCategories.filter((c) => c.status === 'active');
+
+  renderBoard(
+    boardArea,
+    { categories: boardCategories, tasks: appState.tasks },
+    {
+      onOpenChat: () => {
+        if (!isOnline()) {
+          openManualForm(root, activeCategories, { onCreate: createManualTask });
+          return;
+        }
+        openChat(root, {
+          categories: appState.categories,
+          settings: getSettings(),
+          onConfirmed: (added) => {
+            appState.categories = [...appState.categories, ...added.categories];
+            appState.tasks = [...appState.tasks, ...added.tasks];
+            drawBoard();
+          },
+          onManualAdd: () => openManualForm(root, activeCategories, { onCreate: createManualTask }),
+        });
+      },
+      onToggleDone: toggleDone,
+      onOpenTask: (task) => {
+        openTaskDetail(root, task, { onUpdate: updateTask, onToggleDone: toggleDone, onDelete: deleteTask });
+      },
+      onOpenArchive: () => {
+        currentView = 'archive';
+        drawBoard();
+      },
+      onQuickAdd: (categoryId) => openManualForm(root, appState.categories.filter((c) => c.status === 'active'), { onCreate: createManualTask }, categoryId),
+      onOpenSettings: () => openSettings(),
+    }
+  );
+}
+
+function openSettings() {
+  openSettingsMenu(root, {
+    theme: getTheme(),
+    onThemeChange: (theme) => {
+      setTheme(theme);
+      applyTheme(theme);
     },
   });
 }
 
-function drawArchive() {
+function drawArchive(boardArea) {
   const archived = appState.categories.filter((c) => c.status === 'archived');
 
   renderArchiveView(
-    root,
+    boardArea,
     { categories: archived, tasks: appState.tasks },
     {
       onBack: () => {
@@ -259,6 +325,24 @@ function deleteTask(taskId) {
     },
     onCommit: () => persistTaskDelete(taskId),
   });
+}
+
+function createCategoryOnly(name) {
+  const nowIso = new Date().toISOString();
+  const categoryId = crypto.randomUUID();
+  appState.categories.push({
+    id: categoryId,
+    name,
+    status: 'active',
+    created_at: nowIso,
+    archived_at: '',
+    updated_at: nowIso,
+    version: 1,
+  });
+  drawBoard();
+
+  enqueue({ op_id: crypto.randomUUID(), type: 'create', entity: 'category', id: categoryId, base_version: 0, fields: { name } });
+  flush();
 }
 
 function createManualTask(fields) {

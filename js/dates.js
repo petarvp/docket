@@ -11,6 +11,13 @@ export function relativeDueLabel(dueDate) {
   return { label: `след ${diffDays} дни`, level: 'normal' };
 }
 
+export function dueDateDiffDays(dueDate) {
+  if (!dueDate) return null;
+  const today = startOfDay(new Date());
+  const due = startOfDay(new Date(dueDate + 'T00:00:00'));
+  return Math.round((due - today) / 86400000);
+}
+
 function startOfDay(d) {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate());
 }

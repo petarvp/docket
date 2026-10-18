@@ -1,3 +1,37 @@
+export function openNewCategoryForm(root, ctx) {
+  const overlay = document.createElement('div');
+  overlay.className = 'task-overlay';
+  overlay.innerHTML = `
+    <div class="task-panel">
+      <div class="task-panel-header">
+        <span>Нова категория</span>
+        <button class="task-close" aria-label="Затвори">×</button>
+      </div>
+      <div class="task-panel-body">
+        <label>Име <input class="f-category-name" /></label>
+      </div>
+      <div class="task-panel-footer">
+        <button class="primary f-save">Добави</button>
+      </div>
+    </div>
+  `;
+  root.appendChild(overlay);
+
+  const input = overlay.querySelector('.f-category-name');
+  input.focus();
+
+  overlay.querySelector('.task-close').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('.f-save').addEventListener('click', () => {
+    const name = input.value.trim();
+    if (!name) {
+      input.focus();
+      return;
+    }
+    overlay.remove();
+    ctx.onCreate(name);
+  });
+}
+
 export function openTaskDetail(root, task, ctx) {
   const overlay = document.createElement('div');
   overlay.className = 'task-overlay';

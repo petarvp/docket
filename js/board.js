@@ -1,4 +1,4 @@
-import { relativeDueLabel } from './dates.js';
+import { relativeDueLabel, dueDateDiffDays } from './dates.js';
 
 const expandedIds = new Set();
 const PRIORITY_LABELS = { high: 'Висок', medium: 'Среден', low: 'Нисък' };
@@ -71,6 +71,67 @@ export function renderArchiveView(root, { categories, tasks }, handlers) {
 
   wireCardEvents(columnsEl, tasks, handlers);
   root.querySelector('#back-link').addEventListener('click', handlers.onBack);
+}
+
+const VIEW_TITLES = {
+  today: 'Днес',
+  week: 'Следващите 7 дни',
+  month: 'Този месец',
+  calendar: 'Календар',
+  all: 'Всички задачи',
+};
+
+export function renderDateView(root, { categories, tasks }, viewId, handlers) {
+  const activeCategories = categories.filter((c) => c.status === 'active');
+  const activeIds = new Set(activeCategories.map((c) => c.id));
+  const categoryById = new Map(activeCategories.map((c) => [c.id, c]));
+
+  let filtered = tasks.filter((t) => activeIds.has(t.category_id));
+
+  if (viewId !== 'all' && viewId !== 'calendar') {
+    filtered = filtered.filter((t) => {
+      const diff = dueDateDiffDays(t.due_date);
+      if (diff === null) return false;
+      if (viewId === 'today') return diff === 0;
+      if (viewId === 'week') return diff >= 0 && diff <= 7;
+      if (viewId === 'month') return diff >= 0 && diff <= 31;
+      return true;
+    });
+  }
+
+  filtered = [...filtered].sort((a, b) => {
+    const doneDiff = Number(isDone(a)) - Number(isDone(b));
+    if (doneDiff !== 0) return doneDiff;
+    const da = dueDateDiffDays(a.due_date);
+    const db = dueDateDiffDays(b.due_date);
+    if (da === null && db === null) return 0;
+    if (da === null) return 1;
+    if (db === null) return -1;
+    return da - db;
+  });
+
+  root.innerHTML = `
+    <div class="board-screen">
+      <header class="board-header">
+        <h1>${VIEW_TITLES[viewId] || 'Задачи'}</h1>
+        <div class="header-actions">
+          <button id="archive-link" class="icon-button" aria-label="Архивирани">${ICON_ARCHIVE}</button>
+          <button id="settings-link" class="icon-button" aria-label="Настройки">${ICON_SETTINGS}</button>
+        </div>
+      </header>
+      <div class="date-view-list" id="date-view-list">
+        ${
+          filtered.length
+            ? filtered.map((t) => renderCard(t, categoryById.get(t.category_id)?.name)).join('')
+            : '<p class="empty-hint">Няма задачи в този изглед.</p>'
+        }
+      </div>
+    </div>
+  `;
+
+  wireCardEvents(root.querySelector('#date-view-list'), filtered, handlers);
+  root.querySelector('#archive-link').addEventListener('click', handlers.onOpenArchive);
+  root.querySelector('#settings-link').addEventListener('click', handlers.onOpenSettings);
 }
 
 function wireCardEvents(columnsEl, tasks, handlers) {
@@ -154,7 +215,7 @@ function renderColumn(category, tasks) {
   `;
 }
 
-function renderCard(task) {
+function renderCard(task, categoryLabel) {
   const due = relativeDueLabel(task.due_date);
   const expanded = expandedIds.has(task.id);
 
@@ -165,6 +226,7 @@ function renderCard(task) {
         <div class="task-main">
           <div class="task-title">${escapeHtml(task.title)}</div>
           <div class="task-meta">
+            ${categoryLabel ? `<span class="task-category-tag">${escapeHtml(categoryLabel)}</span>` : ''}
             <span class="due due-${due.level}">${due.label}</span>
             <span class="priority priority-${task.priority}">●</span>
           </div>
