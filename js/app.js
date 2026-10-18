@@ -14,6 +14,7 @@ const appState = { categories: [], tasks: [] };
 let currentView = 'board'; // 'board' | 'archive'
 let boardFilter = { kind: 'kanban' }; // 'kanban' | { kind: 'date', range } | { kind: 'category', categoryId }
 let sidebarMobileOpen = false;
+let sidebarDesktopCollapsed = false;
 
 function applyTheme(theme) {
   if (theme === 'light' || theme === 'dark') {
@@ -123,7 +124,7 @@ function drawBoard() {
 
   root.innerHTML = `
     <div class="app-shell">
-      <div class="sidebar-container ${sidebarMobileOpen ? 'mobile-open' : ''}" id="sidebar-container"></div>
+      <div class="sidebar-container ${sidebarMobileOpen ? 'mobile-open' : ''} ${sidebarDesktopCollapsed ? 'desktop-collapsed' : ''}" id="sidebar-container"></div>
       <div class="main-area">
         <header class="top-bar">
           <button class="menu-toggle icon-button" aria-label="Меню">${ICON_MENU}</button>
@@ -177,7 +178,11 @@ function drawBoard() {
   );
 
   root.querySelector('.menu-toggle').addEventListener('click', () => {
-    sidebarMobileOpen = true;
+    if (window.innerWidth < 900) {
+      sidebarMobileOpen = true;
+    } else {
+      sidebarDesktopCollapsed = !sidebarDesktopCollapsed;
+    }
     drawBoard();
   });
 

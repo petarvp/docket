@@ -31,20 +31,18 @@ export function renderSidebar(container, { categories, activeView, activeCategor
       <div class="sidebar-section">
         <div class="sidebar-section-header">
           <span>Категории</span>
-          <button class="sidebar-add-category" aria-label="Нова категория">+</button>
         </div>
-        ${
-          active
-            .map((c) => {
-              const count = (taskCounts && taskCounts[c.id]) || 0;
-              return `
+        ${active
+          .map((c) => {
+            const count = (taskCounts && taskCounts[c.id]) || 0;
+            return `
               <button class="sidebar-item sidebar-category-item ${activeCategoryId === c.id ? 'active' : ''}" style="--cat-hue: ${hashHue(c.id)}" data-category="${c.id}">
                 <span class="sidebar-category-name">${escapeHtml(c.name)}</span>
                 ${count > 0 ? `<span class="sidebar-category-count">${count}</span>` : ''}
               </button>`;
-            })
-            .join('') || '<p class="hint sidebar-empty-hint">Все още няма категории.</p>'
-        }
+          })
+          .join('')}
+        <button class="sidebar-item sidebar-category-add" aria-label="Нова категория">+ Нова категория</button>
       </div>
     </nav>
   `;
@@ -55,7 +53,7 @@ export function renderSidebar(container, { categories, activeView, activeCategor
   container.querySelectorAll('[data-category]').forEach((btn) => {
     btn.addEventListener('click', () => handlers.onSelectCategory(btn.dataset.category));
   });
-  container.querySelector('.sidebar-add-category').addEventListener('click', handlers.onAddCategory);
+  container.querySelector('.sidebar-category-add').addEventListener('click', handlers.onAddCategory);
   container.querySelector('.sidebar-close').addEventListener('click', handlers.onClose);
   container.querySelector('.sidebar-overlay-backdrop').addEventListener('click', handlers.onClose);
 }

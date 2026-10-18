@@ -980,7 +980,7 @@ button.secondary {
 }
 
 .menu-toggle {
-  display: none;
+  display: flex;
   flex: 0 0 auto;
 }
 
@@ -991,6 +991,10 @@ button.secondary {
 
 .sidebar-container {
   flex: 0 0 auto;
+}
+
+.sidebar-container.desktop-collapsed {
+  display: none;
 }
 
 .sidebar-overlay-backdrop {
@@ -1029,13 +1033,19 @@ button.secondary {
   padding: 0 10px;
 }
 
-.sidebar-add-category {
-  background: none;
-  border: none;
+.sidebar-category-add {
+  background: var(--bg);
+  border: 1px dashed var(--border);
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+  margin-top: 4px;
+}
+
+.sidebar-category-add:hover {
+  border-color: var(--accent);
   color: var(--accent);
-  font-size: 16px;
-  line-height: 1;
-  cursor: pointer;
+  background: var(--bg);
 }
 
 .sidebar-item {

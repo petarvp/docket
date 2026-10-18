@@ -81,6 +81,7 @@ export function renderDateView(root, { categories, tasks }, viewId, handlers) {
   filtered = [...filtered].sort((a, b) => {
     const doneDiff = Number(isDone(a)) - Number(isDone(b));
     if (doneDiff !== 0) return doneDiff;
+    if (isDone(a)) return doneAtTime(b) - doneAtTime(a); // most recently completed first
     const da = dueDateDiffDays(a.due_date);
     const db = dueDateDiffDays(b.due_date);
     if (da === null && db === null) return 0;
@@ -165,7 +166,12 @@ function playFlip(columnsEl, previousRects) {
 }
 
 function renderColumn(category, tasks) {
-  const sorted = [...tasks].sort((a, b) => Number(isDone(a)) - Number(isDone(b)));
+  const sorted = [...tasks].sort((a, b) => {
+    const doneDiff = Number(isDone(a)) - Number(isDone(b));
+    if (doneDiff !== 0) return doneDiff;
+    if (isDone(a)) return doneAtTime(b) - doneAtTime(a); // most recently completed first
+    return 0;
+  });
   const firstDoneIndex = sorted.findIndex(isDone);
 
   const cardsHtml = sorted
@@ -215,6 +221,12 @@ function renderCard(task, categoryLabel) {
 
 function isDone(task) {
   return task.done === true || task.done === 'TRUE';
+}
+
+function doneAtTime(task) {
+  const value = task.done_at || task.updated_at;
+  const time = value ? new Date(value).getTime() : 0;
+  return Number.isNaN(time) ? 0 : time;
 }
 
 function escapeHtml(str) {
