@@ -11,6 +11,7 @@ export function renderBoard(root, { categories, tasks }, handlers) {
     <div class="board-screen">
       <header class="board-header">
         <h1>Docket</h1>
+        <button id="archive-link" class="archive-link">Архивирани</button>
       </header>
       <div class="board-columns" id="board-columns"></div>
       <button id="fab" class="fab" aria-label="Нова задача">+</button>
@@ -26,6 +27,8 @@ export function renderBoard(root, { categories, tasks }, handlers) {
   wireCardEvents(columnsEl, tasks, handlers);
   playFlip(columnsEl, previousRects);
 
+  root.querySelector('#archive-link').addEventListener('click', handlers.onOpenArchive);
+
   const fab = root.querySelector('#fab');
   fab.addEventListener('click', () => {
     const existingChat = root.querySelector('.chat-overlay');
@@ -37,6 +40,27 @@ export function renderBoard(root, { categories, tasks }, handlers) {
       handlers.onOpenChat();
     }
   });
+}
+
+export function renderArchiveView(root, { categories, tasks }, handlers) {
+  root.innerHTML = `
+    <div class="board-screen">
+      <header class="board-header">
+        <button id="back-link" class="archive-link">‹ Назад</button>
+        <h1>Архивирани</h1>
+      </header>
+      <div class="board-columns" id="board-columns"></div>
+    </div>
+  `;
+
+  const columnsEl = root.querySelector('#board-columns');
+  columnsEl.innerHTML =
+    categories.length === 0
+      ? '<p class="empty-hint">Все още няма архивирани колони.</p>'
+      : categories.map((cat) => renderColumn(cat, tasks.filter((t) => t.category_id === cat.id))).join('');
+
+  wireCardEvents(columnsEl, tasks, handlers);
+  root.querySelector('#back-link').addEventListener('click', handlers.onBack);
 }
 
 function wireCardEvents(columnsEl, tasks, handlers) {

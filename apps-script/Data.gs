@@ -54,6 +54,12 @@ function applyChanges(payload) {
       } else if (op.type === 'delete' && op.entity === 'task') {
         deleteTaskRow(ss, op);
         applied.push(op.op_id);
+      } else if (op.type === 'archiveCategory' && op.entity === 'category') {
+        setCategoryStatus(ss, op.id, 'archived');
+        applied.push(op.op_id);
+      } else if (op.type === 'reactivateCategory' && op.entity === 'category') {
+        setCategoryStatus(ss, op.id, 'active');
+        applied.push(op.op_id);
       } else {
         conflicts.push({ op_id: op.op_id, error: 'unsupported_op' });
       }
@@ -147,6 +153,23 @@ function deleteTaskRow(ss, op) {
   var rowIndex = findRowIndexById(sheet, op.id);
   if (rowIndex === -1) return; // вече изтрита — нищо да се прави
   sheet.deleteRow(rowIndex);
+}
+
+function setCategoryStatus(ss, id, status) {
+  var sheet = ss.getSheetByName('Categories');
+  var rowIndex = findRowIndexById(sheet, id);
+  if (rowIndex === -1) throw new Error('not_found');
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var now = new Date().toISOString();
+
+  sheet.getRange(rowIndex, headers.indexOf('status') + 1).setValue(status);
+  sheet.getRange(rowIndex, headers.indexOf('archived_at') + 1).setValue(status === 'archived' ? now : '');
+  sheet.getRange(rowIndex, headers.indexOf('updated_at') + 1).setValue(now);
+
+  var versionCol = headers.indexOf('version') + 1;
+  var currentVersion = sheet.getRange(rowIndex, versionCol).getValue();
+  sheet.getRange(rowIndex, versionCol).setValue((currentVersion || 0) + 1);
 }
 
 function findRowIndexById(sheet, id) {

@@ -116,8 +116,24 @@ button.primary:active {
   padding: 24px 20px 100px;
 }
 
-.board-header h1 {
+.board-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 20px;
+}
+
+.board-header h1 {
+  margin-bottom: 0;
+}
+
+.archive-link {
+  background: none;
+  border: none;
+  color: var(--accent);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0;
 }
 
 .board-columns {

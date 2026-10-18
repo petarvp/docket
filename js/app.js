@@ -1,7 +1,7 @@
 import { renderWelcome, renderSettings } from './settings.js';
 import { getSettings, isOnboarded } from './store.js';
 import { callScript } from './api.js';
-import { renderBoard } from './board.js';
+import { renderBoard, renderArchiveView } from './board.js';
 import { openChat } from './chat.js';
 import { openTaskDetail, openManualForm } from './task.js';
 import { showUndo } from './undo.js';
@@ -9,6 +9,7 @@ import { showUndo } from './undo.js';
 const root = document.getElementById('app');
 
 const appState = { categories: [], tasks: [] };
+let currentView = 'board';
 
 async function loadBoard() {
   const settings = getSettings();
@@ -33,6 +34,11 @@ async function loadBoard() {
 }
 
 function drawBoard() {
+  if (currentView === 'archive') {
+    drawArchive();
+    return;
+  }
+
   const activeCategories = appState.categories.filter((c) => c.status === 'active');
 
   renderBoard(root, appState, {
@@ -56,7 +62,34 @@ function drawBoard() {
         onDelete: deleteTask,
       });
     },
+    onOpenArchive: () => {
+      currentView = 'archive';
+      drawBoard();
+    },
   });
+}
+
+function drawArchive() {
+  const archived = appState.categories.filter((c) => c.status === 'archived');
+
+  renderArchiveView(
+    root,
+    { categories: archived, tasks: appState.tasks },
+    {
+      onBack: () => {
+        currentView = 'board';
+        drawBoard();
+      },
+      onToggleDone: toggleDoneInArchive,
+      onOpenTask: (task) => {
+        openTaskDetail(root, task, {
+          onUpdate: updateTask,
+          onToggleDone: toggleDoneInArchive,
+          onDelete: deleteTask,
+        });
+      },
+    }
+  );
 }
 
 function isDoneValue(done) {
@@ -83,13 +116,56 @@ function toggleDone(taskId, done) {
     return;
   }
 
-  showUndo(root, 'Задачата е отметната.', {
+  const category = appState.categories.find((c) => c.id === task.category_id);
+  const remainingActive = appState.tasks.filter(
+    (t) => t.category_id === task.category_id && t.id !== taskId && !isDoneValue(t.done)
+  );
+  const willArchive = !!category && category.status === 'active' && remainingActive.length === 0;
+
+  showUndo(root, willArchive ? 'Последната задача е отметната — колоната отива в архив.' : 'Задачата е отметната.', {
     onUndo: () => {
       task.done = wasDone;
       drawBoard();
     },
-    onCommit: () => persistTaskChange(taskId, { done: true }),
+    onCommit: () => {
+      persistTaskChange(taskId, { done: true });
+      if (willArchive) archiveCategory(category.id);
+    },
   });
+}
+
+function toggleDoneInArchive(taskId, done) {
+  const task = appState.tasks.find((t) => t.id === taskId);
+  if (!task) return;
+  task.done = done;
+
+  if (!done) {
+    const category = appState.categories.find((c) => c.id === task.category_id);
+    if (category && category.status === 'archived') {
+      category.status = 'active';
+      category.archived_at = '';
+      persistCategoryStatus(category.id, 'reactivateCategory', category.version);
+    }
+  }
+
+  drawBoard();
+  persistTaskChange(taskId, { done });
+}
+
+function archiveCategory(categoryId) {
+  const category = appState.categories.find((c) => c.id === categoryId);
+  if (!category) return;
+  category.status = 'archived';
+  category.archived_at = new Date().toISOString();
+  drawBoard();
+  persistCategoryStatus(categoryId, 'archiveCategory', category.version);
+}
+
+function persistCategoryStatus(categoryId, opType, baseVersion) {
+  const settings = getSettings();
+  callScript(settings.scriptUrl, settings.accessToken, 'applyChanges', {
+    ops: [{ op_id: crypto.randomUUID(), type: opType, entity: 'category', id: categoryId, base_version: baseVersion || 0, fields: {} }],
+  }).catch(() => {});
 }
 
 function deleteTask(taskId) {
