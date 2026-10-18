@@ -1,5 +1,5 @@
 import { renderWelcome, renderSettings, openSettingsMenu } from './settings.js';
-import { getSettings, isOnboarded, getSnapshot, saveSnapshot, getTheme, setTheme } from './store.js';
+import { getSettings, isOnboarded, getSnapshot, saveSnapshot, getTheme, setTheme, getGenZMode, setGenZMode } from './store.js';
 import { callScript } from './api.js';
 import { renderBoard, renderArchiveView, renderDateView, ICON_ARCHIVE, ICON_SETTINGS } from './board.js';
 import { renderSidebar, ICON_MENU, VIEWS } from './sidebar.js';
@@ -236,6 +236,8 @@ function openSettings() {
       setTheme(theme);
       applyTheme(theme);
     },
+    genZMode: getGenZMode(),
+    onGenZModeChange: (value) => setGenZMode(value),
   });
 }
 

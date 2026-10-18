@@ -114,7 +114,7 @@ const THEME_CHOICES = [
   { value: 'dark', label: 'Тъмна' },
 ];
 
-export function openSettingsMenu(root, { theme, onThemeChange }) {
+export function openSettingsMenu(root, { theme, onThemeChange, genZMode, onGenZModeChange }) {
   const overlay = document.createElement('div');
   overlay.className = 'task-overlay';
   overlay.innerHTML = `
@@ -128,6 +128,18 @@ export function openSettingsMenu(root, { theme, onThemeChange }) {
         <div class="theme-options">
           ${THEME_CHOICES.map((c) => `<button class="theme-option" data-theme="${c.value}">${c.label}</button>`).join('')}
         </div>
+
+        <p class="hint settings-section-spacer">Gen Z mode</p>
+        <label class="toggle-row">
+          <span>
+            Emoji в заглавията на предложените задачи
+            <span class="hint">AI добавя подходящо emoji към всяка задача за по-бърз преглед.</span>
+          </span>
+          <span class="switch">
+            <input type="checkbox" class="genz-toggle" ${genZMode ? 'checked' : ''} />
+            <span class="switch-track"></span>
+          </span>
+        </label>
       </div>
     </div>
   `;
@@ -146,5 +158,9 @@ export function openSettingsMenu(root, { theme, onThemeChange }) {
       onThemeChange(btn.dataset.theme);
       markActive(btn.dataset.theme);
     });
+  });
+
+  overlay.querySelector('.genz-toggle').addEventListener('change', (e) => {
+    onGenZModeChange(e.target.checked);
   });
 }

@@ -93,7 +93,13 @@ function buildSystemPrompt(payload) {
     'Ако няма конкретен краен срок за задача, due_date трябва да е null.',
     'source_excerpt е кратък (до 15 думи) откъс от оригиналния текст, от който произлиза задачата.',
     'Бъди кратък — message до едно изречение.',
-  ].join(' ');
+  ]
+    .concat(
+      payload.gen_z_mode
+        ? ['„Gen Z mode" е включен: добави по едно подходящо emoji в НАЧАЛОТО на всяко заглавие на задача (title), за по-бърз преглед с поглед.']
+        : []
+    )
+    .join(' ');
 }
 
 function buildProposalSchema() {

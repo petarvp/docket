@@ -3,6 +3,7 @@ const ONBOARDED_KEY = 'docket.onboarded';
 const SNAPSHOT_KEY = 'docket.snapshot';
 const OUTBOX_KEY = 'docket.outbox';
 const THEME_KEY = 'docket.theme';
+const GENZ_MODE_KEY = 'docket.genZMode';
 
 export function getSettings() {
   try {
@@ -54,4 +55,12 @@ export function getTheme() {
 
 export function setTheme(theme) {
   localStorage.setItem(THEME_KEY, theme);
+}
+
+export function getGenZMode() {
+  return localStorage.getItem(GENZ_MODE_KEY) === 'true';
+}
+
+export function setGenZMode(value) {
+  localStorage.setItem(GENZ_MODE_KEY, value ? 'true' : 'false');
 }

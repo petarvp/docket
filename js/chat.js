@@ -1,4 +1,5 @@
 import { callScript } from './api.js';
+import { getGenZMode } from './store.js';
 
 const ICON_SEND =
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
@@ -60,7 +61,7 @@ async function handleSend(overlay, ctx, state) {
   const activeNames = ctx.categories.filter((c) => c.status === 'active').map((c) => c.name);
   const today = new Date().toISOString().slice(0, 10);
 
-  const payload = { text: isCorrection ? state.lastUserText : text, active_categories: activeNames, today };
+  const payload = { text: isCorrection ? state.lastUserText : text, active_categories: activeNames, today, gen_z_mode: getGenZMode() };
   if (isCorrection) {
     state.correctionRound += 1;
     payload.previous_proposal = state.previousProposal;
