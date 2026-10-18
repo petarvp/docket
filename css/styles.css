@@ -879,19 +879,44 @@ button.secondary {
   min-height: 100vh;
 }
 
-.board-area {
+.main-area {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.top-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 20px 20px 0;
+}
+
+.top-bar-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.top-bar .header-actions {
+  flex: 0 0 auto;
 }
 
 .menu-toggle {
   display: none;
-  position: fixed;
-  top: 20px;
-  left: 16px;
-  z-index: 12;
-  background: var(--surface);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  flex: 0 0 auto;
+}
+
+.board-area {
+  flex: 1;
+  min-width: 0;
 }
 
 .sidebar-container {
@@ -962,9 +987,56 @@ button.secondary {
   background: var(--bg);
 }
 
+.sidebar-category-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  background: hsl(var(--cat-hue, 210), 70%, 93%);
+  border-left: 3px solid hsl(var(--cat-hue, 210), 55%, 62%);
+  border-radius: 6px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .sidebar-category-item {
+    background: hsl(var(--cat-hue, 210), 32%, 20%);
+  }
+}
+
+:root[data-theme='dark'] .sidebar-category-item {
+  background: hsl(var(--cat-hue, 210), 32%, 20%);
+}
+
+.sidebar-category-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-category-count {
+  flex: 0 0 auto;
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 999px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+}
+
 .sidebar-item.active {
   background: var(--accent);
+  border-left-color: transparent;
   color: #fff;
+}
+
+.sidebar-item.active .sidebar-category-count {
+  background: rgba(255, 255, 255, 0.25);
 }
 
 .sidebar-empty-hint {
@@ -1030,7 +1102,7 @@ button.secondary {
     letter-spacing: -0.02em;
   }
 
-  .board-area {
-    padding-top: 56px;
+  .top-bar-title {
+    font-size: 22px;
   }
 }

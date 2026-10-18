@@ -9,19 +9,14 @@ const ICON_ARCHIVE =
 const ICON_SETTINGS =
   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>';
 
+export { ICON_ARCHIVE, ICON_SETTINGS };
+
 export function renderBoard(root, { categories, tasks }, handlers) {
   const active = categories.filter((c) => c.status === 'active');
   const previousRects = captureRects(root);
 
   root.innerHTML = `
     <div class="board-screen">
-      <header class="board-header">
-        <h1>Docket</h1>
-        <div class="header-actions">
-          <button id="archive-link" class="icon-button" aria-label="Архивирани">${ICON_ARCHIVE}</button>
-          <button id="settings-link" class="icon-button" aria-label="Настройки">${ICON_SETTINGS}</button>
-        </div>
-      </header>
       <div class="board-columns" id="board-columns"></div>
       <button id="fab" class="fab" aria-label="Нова задача">+</button>
     </div>
@@ -35,9 +30,6 @@ export function renderBoard(root, { categories, tasks }, handlers) {
 
   wireCardEvents(columnsEl, tasks, handlers);
   playFlip(columnsEl, previousRects);
-
-  root.querySelector('#archive-link').addEventListener('click', handlers.onOpenArchive);
-  root.querySelector('#settings-link').addEventListener('click', handlers.onOpenSettings);
 
   const fab = root.querySelector('#fab');
   fab.addEventListener('click', () => {
@@ -55,10 +47,6 @@ export function renderBoard(root, { categories, tasks }, handlers) {
 export function renderArchiveView(root, { categories, tasks }, handlers) {
   root.innerHTML = `
     <div class="board-screen">
-      <header class="board-header">
-        <button id="back-link" class="archive-link">‹ Назад</button>
-        <h1>Архивирани</h1>
-      </header>
       <div class="board-columns" id="board-columns"></div>
     </div>
   `;
@@ -70,16 +58,7 @@ export function renderArchiveView(root, { categories, tasks }, handlers) {
       : categories.map((cat) => renderColumn(cat, tasks.filter((t) => t.category_id === cat.id))).join('');
 
   wireCardEvents(columnsEl, tasks, handlers);
-  root.querySelector('#back-link').addEventListener('click', handlers.onBack);
 }
-
-const VIEW_TITLES = {
-  today: 'Днес',
-  week: 'Следващите 7 дни',
-  month: 'Този месец',
-  calendar: 'Календар',
-  all: 'Всички задачи',
-};
 
 export function renderDateView(root, { categories, tasks }, viewId, handlers) {
   const activeCategories = categories.filter((c) => c.status === 'active');
@@ -112,13 +91,6 @@ export function renderDateView(root, { categories, tasks }, viewId, handlers) {
 
   root.innerHTML = `
     <div class="board-screen">
-      <header class="board-header">
-        <h1>${VIEW_TITLES[viewId] || 'Задачи'}</h1>
-        <div class="header-actions">
-          <button id="archive-link" class="icon-button" aria-label="Архивирани">${ICON_ARCHIVE}</button>
-          <button id="settings-link" class="icon-button" aria-label="Настройки">${ICON_SETTINGS}</button>
-        </div>
-      </header>
       <div class="date-view-list" id="date-view-list">
         ${
           filtered.length
@@ -130,8 +102,6 @@ export function renderDateView(root, { categories, tasks }, viewId, handlers) {
   `;
 
   wireCardEvents(root.querySelector('#date-view-list'), filtered, handlers);
-  root.querySelector('#archive-link').addEventListener('click', handlers.onOpenArchive);
-  root.querySelector('#settings-link').addEventListener('click', handlers.onOpenSettings);
 }
 
 function wireCardEvents(columnsEl, tasks, handlers) {

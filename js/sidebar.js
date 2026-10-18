@@ -10,9 +10,9 @@ const VIEWS = [
 const ICON_MENU =
   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
 
-export { ICON_MENU };
+export { ICON_MENU, VIEWS };
 
-export function renderSidebar(container, { categories, activeView, activeCategoryId }, handlers) {
+export function renderSidebar(container, { categories, activeView, activeCategoryId, taskCounts }, handlers) {
   const active = categories.filter((c) => c.status === 'active');
 
   container.innerHTML = `
@@ -35,10 +35,14 @@ export function renderSidebar(container, { categories, activeView, activeCategor
         </div>
         ${
           active
-            .map(
-              (c) =>
-                `<button class="sidebar-item ${activeCategoryId === c.id ? 'active' : ''}" data-category="${c.id}">${escapeHtml(c.name)}</button>`
-            )
+            .map((c) => {
+              const count = (taskCounts && taskCounts[c.id]) || 0;
+              return `
+              <button class="sidebar-item sidebar-category-item ${activeCategoryId === c.id ? 'active' : ''}" style="--cat-hue: ${hashHue(c.id)}" data-category="${c.id}">
+                <span class="sidebar-category-name">${escapeHtml(c.name)}</span>
+                ${count > 0 ? `<span class="sidebar-category-count">${count}</span>` : ''}
+              </button>`;
+            })
             .join('') || '<p class="hint sidebar-empty-hint">Все още няма категории.</p>'
         }
       </div>
@@ -54,6 +58,14 @@ export function renderSidebar(container, { categories, activeView, activeCategor
   container.querySelector('.sidebar-add-category').addEventListener('click', handlers.onAddCategory);
   container.querySelector('.sidebar-close').addEventListener('click', handlers.onClose);
   container.querySelector('.sidebar-overlay-backdrop').addEventListener('click', handlers.onClose);
+}
+
+function hashHue(id) {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    hash = (hash * 31 + id.charCodeAt(i)) % 360;
+  }
+  return hash;
 }
 
 function escapeHtml(str) {

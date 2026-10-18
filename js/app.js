@@ -1,8 +1,8 @@
 import { renderWelcome, renderSettings, openSettingsMenu } from './settings.js';
 import { getSettings, isOnboarded, getSnapshot, saveSnapshot, getTheme, setTheme } from './store.js';
 import { callScript } from './api.js';
-import { renderBoard, renderArchiveView, renderDateView } from './board.js';
-import { renderSidebar, ICON_MENU } from './sidebar.js';
+import { renderBoard, renderArchiveView, renderDateView, ICON_ARCHIVE, ICON_SETTINGS } from './board.js';
+import { renderSidebar, ICON_MENU, VIEWS } from './sidebar.js';
 import { openChat } from './chat.js';
 import { openTaskDetail, openManualForm, openNewCategoryForm } from './task.js';
 import { showUndo } from './undo.js';
@@ -100,19 +100,52 @@ function handleConflicts(conflicts) {
   });
 }
 
+function topBarTitle() {
+  if (currentView === 'archive') return 'Архивирани';
+  if (boardFilter.kind === 'date') return (VIEWS.find((v) => v.id === boardFilter.range) || {}).label || 'Задачи';
+  if (boardFilter.kind === 'category') {
+    const category = appState.categories.find((c) => c.id === boardFilter.categoryId);
+    return category ? category.name : 'Docket';
+  }
+  return 'Docket';
+}
+
+function activeTaskCounts() {
+  const counts = {};
+  appState.tasks.forEach((t) => {
+    if (!isDoneValue(t.done)) counts[t.category_id] = (counts[t.category_id] || 0) + 1;
+  });
+  return counts;
+}
+
 function drawBoard() {
   saveSnapshot(appState.categories, appState.tasks);
 
   root.innerHTML = `
     <div class="app-shell">
-      <button class="menu-toggle icon-button" aria-label="Меню">${ICON_MENU}</button>
       <div class="sidebar-container ${sidebarMobileOpen ? 'mobile-open' : ''}" id="sidebar-container"></div>
-      <div class="board-area" id="board-area"></div>
+      <div class="main-area">
+        <header class="top-bar">
+          <button class="menu-toggle icon-button" aria-label="Меню">${ICON_MENU}</button>
+          <h1 class="top-bar-title">${escapeHtml(topBarTitle())}</h1>
+          <div class="header-actions">
+            <button id="archive-link" class="icon-button" aria-label="Архивирани">${ICON_ARCHIVE}</button>
+            <button id="settings-link" class="icon-button" aria-label="Настройки">${ICON_SETTINGS}</button>
+          </div>
+        </header>
+        <div class="board-area" id="board-area"></div>
+      </div>
     </div>
   `;
 
   const sidebarContainer = root.querySelector('#sidebar-container');
   const boardArea = root.querySelector('#board-area');
+
+  root.querySelector('#archive-link').addEventListener('click', () => {
+    currentView = 'archive';
+    drawBoard();
+  });
+  root.querySelector('#settings-link').addEventListener('click', () => openSettings());
 
   renderSidebar(
     sidebarContainer,
@@ -120,6 +153,7 @@ function drawBoard() {
       categories: appState.categories,
       activeView: currentView === 'board' && boardFilter.kind !== 'category' ? (boardFilter.kind === 'kanban' ? 'board' : boardFilter.range) : null,
       activeCategoryId: boardFilter.kind === 'category' ? boardFilter.categoryId : null,
+      taskCounts: activeTaskCounts(),
     },
     {
       onSelectView: (viewId) => {
@@ -158,11 +192,6 @@ function drawBoard() {
       onOpenTask: (task) => {
         openTaskDetail(root, task, { onUpdate: updateTask, onToggleDone: toggleDone, onDelete: deleteTask });
       },
-      onOpenArchive: () => {
-        currentView = 'archive';
-        drawBoard();
-      },
-      onOpenSettings: () => openSettings(),
     });
     return;
   }
@@ -195,12 +224,7 @@ function drawBoard() {
       onOpenTask: (task) => {
         openTaskDetail(root, task, { onUpdate: updateTask, onToggleDone: toggleDone, onDelete: deleteTask });
       },
-      onOpenArchive: () => {
-        currentView = 'archive';
-        drawBoard();
-      },
       onQuickAdd: (categoryId) => openManualForm(root, appState.categories.filter((c) => c.status === 'active'), { onCreate: createManualTask }, categoryId),
-      onOpenSettings: () => openSettings(),
     }
   );
 }
@@ -397,6 +421,12 @@ function persistTaskChange(taskId, fields) {
 function persistTaskDelete(taskId) {
   enqueue({ op_id: crypto.randomUUID(), type: 'delete', entity: 'task', id: taskId, base_version: 0, fields: {} });
   flush();
+}
+
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str ?? '';
+  return div.innerHTML;
 }
 
 if ('serviceWorker' in navigator) {
