@@ -4,8 +4,13 @@ import { getGenZMode } from './store.js';
 const ICON_SEND =
   '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>';
 
+const ICON_ATTACH =
+  '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"></path></svg>';
+
+const MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024;
+
 export function openChat(root, ctx) {
-  const state = { previousProposal: null, lastUserText: '', correctionRound: 0 };
+  const state = { previousProposal: null, lastUserText: '', correctionRound: 0, attachment: null };
 
   const overlay = document.createElement('div');
   overlay.className = 'chat-overlay';
@@ -16,7 +21,10 @@ export function openChat(root, ctx) {
         <button class="chat-close" aria-label="Затвори">×</button>
       </div>
       <div class="chat-messages"></div>
+      <div class="chat-attachment" hidden></div>
       <div class="chat-input-row">
+        <button class="chat-attach-btn icon-button" aria-label="Прикачи файл">${ICON_ATTACH}</button>
+        <input type="file" class="chat-file-input" hidden />
         <textarea class="chat-input" placeholder="Постави имейл или напиши какво трябва да направиш..."></textarea>
         <button class="chat-send" aria-label="Изпрати">${ICON_SEND}</button>
       </div>
@@ -30,6 +38,76 @@ export function openChat(root, ctx) {
   overlay.querySelector('.chat-manual-link').addEventListener('click', () => {
     closeChat(root, overlay);
     ctx.onManualAdd();
+  });
+  overlay.querySelector('.chat-attach-btn').addEventListener('click', () => {
+    overlay.querySelector('.chat-file-input').click();
+  });
+  overlay.querySelector('.chat-file-input').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    e.target.value = '';
+    if (file) handleAttach(overlay, ctx, state, file);
+  });
+
+  // Enter изпраща (на компютър); Shift+Enter пази нов ред в текста.
+  overlay.querySelector('.chat-input').addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSend(overlay, ctx, state);
+    }
+  });
+}
+
+async function handleAttach(overlay, ctx, state, file) {
+  const box = overlay.querySelector('.chat-attachment');
+
+  if (file.size > MAX_ATTACHMENT_BYTES) {
+    showAttachmentMessage(box, 'Файлът е твърде голям (макс. 5 MB).', true);
+    return;
+  }
+
+  showAttachmentMessage(box, `Качвам „${file.name}"...`, false);
+
+  try {
+    const base64 = await fileToBase64(file);
+    const res = await callScript(ctx.settings.scriptUrl, ctx.settings.accessToken, 'uploadFile', {
+      filename: file.name,
+      mimeType: file.type || 'application/octet-stream',
+      data: base64,
+    });
+    if (!res.ok) {
+      showAttachmentMessage(box, res.message || 'Неуспешно качване.', true);
+      return;
+    }
+    state.attachment = { name: res.data.name, url: res.data.url };
+    renderAttachmentChip(box, state);
+  } catch (err) {
+    showAttachmentMessage(box, 'Неуспешно качване. Провери връзката.', true);
+  }
+}
+
+function showAttachmentMessage(box, message, isError) {
+  box.hidden = false;
+  box.className = 'chat-attachment' + (isError ? ' chat-attachment-error' : '');
+  box.textContent = message;
+}
+
+function renderAttachmentChip(box, state) {
+  box.hidden = false;
+  box.className = 'chat-attachment chat-attachment-ready';
+  box.innerHTML = `<span class="chat-attachment-name">📎 ${escapeHtml(state.attachment.name)}</span><button class="chat-attachment-remove" aria-label="Премахни файла">×</button>`;
+  box.querySelector('.chat-attachment-remove').addEventListener('click', () => {
+    state.attachment = null;
+    box.hidden = true;
+    box.innerHTML = '';
+  });
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result.split(',')[1] || '');
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
   });
 }
 
@@ -54,20 +132,38 @@ async function handleSend(overlay, ctx, state) {
   if (!text) return;
 
   const isCorrection = !!state.previousProposal;
-  addMessage(overlay, escapeHtml(text), 'user');
+  const attachment = isCorrection ? null : state.attachment;
+
+  addMessage(
+    overlay,
+    escapeHtml(text) + (attachment ? `<div class="chat-msg-attachment">📎 ${escapeHtml(attachment.name)}</div>` : ''),
+    'user'
+  );
   textarea.value = '';
   textarea.disabled = true;
+
+  const attachmentBox = overlay.querySelector('.chat-attachment');
+  attachmentBox.hidden = true;
+  attachmentBox.innerHTML = '';
+  state.attachment = null;
 
   const activeNames = ctx.categories.filter((c) => c.status === 'active').map((c) => c.name);
   const today = new Date().toISOString().slice(0, 10);
 
-  const payload = { text: isCorrection ? state.lastUserText : text, active_categories: activeNames, today, gen_z_mode: getGenZMode() };
+  const textWithAttachment = attachment ? `${text}\n\n[Прикачен файл: ${attachment.name} — ${attachment.url}]` : text;
+
+  const payload = {
+    text: isCorrection ? state.lastUserText : textWithAttachment,
+    active_categories: activeNames,
+    today,
+    gen_z_mode: getGenZMode(),
+  };
   if (isCorrection) {
     state.correctionRound += 1;
     payload.previous_proposal = state.previousProposal;
     payload.correction = text;
   } else {
-    state.lastUserText = text;
+    state.lastUserText = textWithAttachment;
   }
 
   const loadingEl = addMessage(overlay, 'Мисля...', 'ai-loading');

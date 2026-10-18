@@ -37,6 +37,8 @@ function route(body) {
       return { ok: true, data: applyChanges(payload) };
     case 'logEvent':
       return logEvent(payload);
+    case 'uploadFile':
+      return uploadFile(payload);
     default:
       return { ok: false, error: 'unknown_action', message: 'Неизвестно действие: ' + action };
   }
@@ -53,6 +55,25 @@ function saveSettings(payload) {
   }
   PropertiesService.getScriptProperties().setProperty('GROQ_API_KEY', payload.groq_api_key);
   return { ok: true, data: {} };
+}
+
+/**
+ * Запазва прикачен файл от чата в Google Drive на потребителя и връща линк към него.
+ * Файлът се праща base64-кодиран (payload.data) от страницата.
+ */
+function uploadFile(payload) {
+  if (!payload.data || !payload.filename) {
+    return { ok: false, error: 'missing_field', message: 'Липсва файл.' };
+  }
+  try {
+    var bytes = Utilities.base64Decode(payload.data);
+    var blob = Utilities.newBlob(bytes, payload.mimeType || 'application/octet-stream', payload.filename);
+    var file = DriveApp.createFile(blob);
+    file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+    return { ok: true, data: { url: file.getUrl(), name: payload.filename } };
+  } catch (err) {
+    return { ok: false, error: 'upload_failed', message: 'Неуспешно качване: ' + err.message };
+  }
 }
 
 /**
