@@ -137,15 +137,15 @@ Build mode: fast
 
 ## Code Tour and App Map
 
-- [ ] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
-- [ ] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
-- [ ] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
+- [x] Learning activity complete — guided route, focused alternative, prior practice connected, or brief recap
+- [x] Optional edit and transfer reflection addressed — offered/declined/already covered/not applicable as appropriate
+- [x] `devpost/app-map.html` generated from finished code, checked, and shown, including a project-grounded practice to reuse
 
-Activity and evidence: [what actually happened; real document/test/code references; unfinished work if interrupted]
-Route and stops: [actual paths and symbols; guided stops completed, or reference-only route]
-Edit outcome: [tried/kept/reverted/declined/not applicable; verification if changed]
-Reflection: [offered/answered/declined/already covered — personal answer belongs only in the ignored profile]
-Activity mode: [live app and editor, explicit static fallback, focused alternative, prior practice, or recap]
+Activity and evidence: Guided route tied to the learner's stated goal ("как се работи с AI агент"). Traced marking a task done end-to-end; learner confirmed it matched what they saw in their editor ("всичко изглежда наред").
+Route and stops: `js/board.js` `wireCardEvents` (`.task-check` click) → `js/app.js:302` `toggleDone()` → `js/app.js:440` `persistTaskChange()`/`enqueue` → `apps-script/Data.gs`. Completed together, not reference-only.
+Edit outcome: Optional small edit (e.g. undo-toast text) offered; learner did not take it up — declined, no replacement exercise substituted.
+Reflection: Offered the one optional transfer question; learner moved on to a hosting question instead — treated as declined, no further prompting.
+Activity mode: Live app and editor (learner had the real project open and running locally).
 
 ## Revisions
 
