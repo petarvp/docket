@@ -48,6 +48,12 @@ function applyChanges(payload) {
       } else if (op.type === 'create' && op.entity === 'task') {
         taskRows.push(buildTaskRow(op));
         applied.push(op.op_id);
+      } else if (op.type === 'update' && op.entity === 'task') {
+        updateTaskRow(ss, op);
+        applied.push(op.op_id);
+      } else if (op.type === 'delete' && op.entity === 'task') {
+        deleteTaskRow(ss, op);
+        applied.push(op.op_id);
       } else {
         conflicts.push({ op_id: op.op_id, error: 'unsupported_op' });
       }
@@ -103,4 +109,52 @@ function writeRows(ss, sheetName, rows, textColumns) {
   });
 
   sheet.getRange(startRow, 1, rows.length, rows[0].length).setValues(rows);
+}
+
+var TASK_TEXT_FIELDS = ['category_id', 'title', 'details', 'due_date', 'source_excerpt'];
+
+function updateTaskRow(ss, op) {
+  var sheet = ss.getSheetByName('Tasks');
+  var rowIndex = findRowIndexById(sheet, op.id);
+  if (rowIndex === -1) throw new Error('not_found');
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var fields = op.fields || {};
+
+  Object.keys(fields).forEach(function (key) {
+    var col = headers.indexOf(key) + 1;
+    if (col === 0) return;
+    var cell = sheet.getRange(rowIndex, col);
+    if (TASK_TEXT_FIELDS.indexOf(key) !== -1) cell.setNumberFormat('@');
+    cell.setValue(fields[key]);
+  });
+
+  if (fields.done === true) {
+    sheet.getRange(rowIndex, headers.indexOf('done_at') + 1).setValue(new Date().toISOString());
+  } else if (fields.done === false) {
+    sheet.getRange(rowIndex, headers.indexOf('done_at') + 1).setValue('');
+  }
+
+  var updatedAtCol = headers.indexOf('updated_at') + 1;
+  var versionCol = headers.indexOf('version') + 1;
+  sheet.getRange(rowIndex, updatedAtCol).setValue(new Date().toISOString());
+  var currentVersion = sheet.getRange(rowIndex, versionCol).getValue();
+  sheet.getRange(rowIndex, versionCol).setValue((currentVersion || 0) + 1);
+}
+
+function deleteTaskRow(ss, op) {
+  var sheet = ss.getSheetByName('Tasks');
+  var rowIndex = findRowIndexById(sheet, op.id);
+  if (rowIndex === -1) return; // вече изтрита — нищо да се прави
+  sheet.deleteRow(rowIndex);
+}
+
+function findRowIndexById(sheet, id) {
+  var lastRow = sheet.getLastRow();
+  if (lastRow < 2) return -1;
+  var ids = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+  for (var i = 0; i < ids.length; i++) {
+    if (ids[i][0] === id) return i + 2;
+  }
+  return -1;
 }

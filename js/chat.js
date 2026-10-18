@@ -16,12 +16,22 @@ export function openChat(root, ctx) {
         <textarea class="chat-input" placeholder="Постави имейл или напиши какво трябва да направиш..."></textarea>
         <button class="chat-send primary">Изпрати</button>
       </div>
+      <button class="chat-manual-link">+ ръчно</button>
     </div>
   `;
   root.appendChild(overlay);
 
-  overlay.querySelector('.chat-close').addEventListener('click', () => overlay.remove());
+  overlay.querySelector('.chat-close').addEventListener('click', () => closeChat(root, overlay));
   overlay.querySelector('.chat-send').addEventListener('click', () => handleSend(overlay, ctx, state));
+  overlay.querySelector('.chat-manual-link').addEventListener('click', () => {
+    closeChat(root, overlay);
+    ctx.onManualAdd();
+  });
+}
+
+function closeChat(root, overlay) {
+  overlay.remove();
+  root.querySelector('#fab')?.classList.remove('open');
 }
 
 function addMessage(overlay, html, role) {

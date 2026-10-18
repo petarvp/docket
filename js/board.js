@@ -1,7 +1,11 @@
 import { relativeDueLabel } from './dates.js';
 
+const expandedIds = new Set();
+const PRIORITY_LABELS = { high: 'Висок', medium: 'Среден', low: 'Нисък' };
+
 export function renderBoard(root, { categories, tasks }, handlers) {
   const active = categories.filter((c) => c.status === 'active');
+  const previousRects = captureRects(root);
 
   root.innerHTML = `
     <div class="board-screen">
@@ -19,16 +23,87 @@ export function renderBoard(root, { categories, tasks }, handlers) {
       ? '<p class="empty-hint">Няма активни колони още. Натисни + и постави текст, за да се появят.</p>'
       : active.map((cat) => renderColumn(cat, tasks.filter((t) => t.category_id === cat.id))).join('');
 
-  root.querySelector('#fab').addEventListener('click', handlers.onOpenChat);
+  wireCardEvents(columnsEl, tasks, handlers);
+  playFlip(columnsEl, previousRects);
+
+  const fab = root.querySelector('#fab');
+  fab.addEventListener('click', () => {
+    const existingChat = root.querySelector('.chat-overlay');
+    if (existingChat) {
+      existingChat.remove();
+      fab.classList.remove('open');
+    } else {
+      fab.classList.add('open');
+      handlers.onOpenChat();
+    }
+  });
+}
+
+function wireCardEvents(columnsEl, tasks, handlers) {
+  columnsEl.querySelectorAll('.task-card').forEach((el) => {
+    const task = tasks.find((t) => t.id === el.dataset.taskId);
+    if (!task) return;
+
+    el.querySelector('.task-check').addEventListener('click', (e) => {
+      e.stopPropagation();
+      handlers.onToggleDone(task.id, !isDone(task));
+    });
+
+    const editBtn = el.querySelector('.task-edit-btn');
+    if (editBtn) {
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handlers.onOpenTask(task);
+      });
+    }
+
+    el.addEventListener('click', () => {
+      const willExpand = !el.classList.contains('expanded');
+      el.classList.toggle('expanded', willExpand);
+      if (willExpand) expandedIds.add(task.id);
+      else expandedIds.delete(task.id);
+    });
+  });
+}
+
+function captureRects(root) {
+  const map = new Map();
+  root.querySelectorAll('.task-card').forEach((el) => {
+    map.set(el.dataset.taskId, el.getBoundingClientRect());
+  });
+  return map;
+}
+
+function playFlip(columnsEl, previousRects) {
+  columnsEl.querySelectorAll('.task-card').forEach((el) => {
+    const prev = previousRects.get(el.dataset.taskId);
+    if (!prev) return;
+    const next = el.getBoundingClientRect();
+    const dx = prev.left - next.left;
+    const dy = prev.top - next.top;
+    if (!dx && !dy) return;
+    el.style.transition = 'none';
+    el.style.transform = `translate(${dx}px, ${dy}px)`;
+    requestAnimationFrame(() => {
+      el.style.transition = '';
+      el.style.transform = '';
+    });
+  });
 }
 
 function renderColumn(category, tasks) {
   const sorted = [...tasks].sort((a, b) => Number(isDone(a)) - Number(isDone(b)));
+  const firstDoneIndex = sorted.findIndex(isDone);
+
+  const cardsHtml = sorted
+    .map((t, i) => (i === firstDoneIndex && i > 0 ? '<hr class="done-divider" />' : '') + renderCard(t))
+    .join('');
+
   return `
     <div class="column">
       <h2>${escapeHtml(category.name)}</h2>
       <div class="cards">
-        ${sorted.map(renderCard).join('') || '<p class="empty-hint">Няма задачи</p>'}
+        ${cardsHtml || '<p class="empty-hint">Няма задачи</p>'}
       </div>
     </div>
   `;
@@ -36,12 +111,26 @@ function renderColumn(category, tasks) {
 
 function renderCard(task) {
   const due = relativeDueLabel(task.due_date);
+  const expanded = expandedIds.has(task.id);
+
   return `
-    <div class="card task-card ${isDone(task) ? 'done' : ''}">
-      <div class="task-title">${escapeHtml(task.title)}</div>
-      <div class="task-meta">
-        <span class="due due-${due.level}">${due.label}</span>
-        <span class="priority priority-${task.priority}">●</span>
+    <div class="card task-card ${isDone(task) ? 'done' : ''} ${expanded ? 'expanded' : ''}" data-task-id="${task.id}">
+      <div class="task-row">
+        <button class="task-check" aria-label="Отметни като приключена"></button>
+        <div class="task-main">
+          <div class="task-title">${escapeHtml(task.title)}</div>
+          <div class="task-meta">
+            <span class="due due-${due.level}">${due.label}</span>
+            <span class="priority priority-${task.priority}">●</span>
+          </div>
+        </div>
+      </div>
+      <div class="task-expand">
+        <div class="task-expand-inner">
+          ${task.details ? `<p class="task-expand-details">${escapeHtml(task.details)}</p>` : ''}
+          <p class="task-expand-meta">Приоритет: ${PRIORITY_LABELS[task.priority] || task.priority} · Срок: ${due.label}</p>
+          <button class="task-edit-btn">Редактирай</button>
+        </div>
       </div>
     </div>
   `;
