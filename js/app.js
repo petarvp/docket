@@ -1,30 +1,61 @@
 import { renderWelcome, renderSettings } from './settings.js';
-import { getSettings, isOnboarded } from './store.js';
+import { getSettings, isOnboarded, getSnapshot, saveSnapshot } from './store.js';
 import { callScript } from './api.js';
 import { renderBoard, renderArchiveView } from './board.js';
 import { openChat } from './chat.js';
 import { openTaskDetail, openManualForm } from './task.js';
 import { showUndo } from './undo.js';
+import { initSync, isOnline, enqueue, flush, showConflictDialog } from './sync.js';
 
 const root = document.getElementById('app');
 
 const appState = { categories: [], tasks: [] };
 let currentView = 'board';
 
-async function loadBoard() {
+async function start() {
+  if (!(isOnboarded() && getSettings())) {
+    renderWelcome(root, () => renderSettings(root, afterSettingsSaved));
+    return;
+  }
+
+  const snapshot = getSnapshot();
+  if (snapshot) {
+    appState.categories = snapshot.categories || [];
+    appState.tasks = snapshot.tasks || [];
+    drawBoard();
+  }
+
+  initSync({ onConflicts: handleConflicts });
+  flush();
+  refreshFromServer();
+}
+
+function afterSettingsSaved() {
+  initSync({ onConflicts: handleConflicts });
+  refreshFromServer();
+}
+
+async function refreshFromServer() {
+  if (!isOnline()) return;
+
   const settings = getSettings();
-  root.innerHTML = '<div class="screen"><p class="hint">Зареждам...</p></div>';
+  const hasData = appState.categories.length > 0 || appState.tasks.length > 0;
+  if (!hasData) {
+    root.innerHTML = '<div class="screen"><p class="hint">Зареждам...</p></div>';
+  }
 
   let res;
   try {
     res = await callScript(settings.scriptUrl, settings.accessToken, 'getAll', {});
   } catch (err) {
-    root.innerHTML = '<div class="screen"><p class="hint">Не мога да се свържа със скрипта. Провери URL-а и кода.</p></div>';
+    if (!hasData) {
+      root.innerHTML = '<div class="screen"><p class="hint">Не мога да се свържа със скрипта. Провери URL-а и кода.</p></div>';
+    }
     return;
   }
 
   if (!res.ok) {
-    root.innerHTML = `<div class="screen"><p class="hint">${res.message || 'Грешка при зареждане.'}</p></div>`;
+    if (!hasData) root.innerHTML = `<div class="screen"><p class="hint">${res.message || 'Грешка при зареждане.'}</p></div>`;
     return;
   }
 
@@ -33,7 +64,32 @@ async function loadBoard() {
   drawBoard();
 }
 
+function handleConflicts(conflicts) {
+  conflicts.forEach((conflict) => {
+    showConflictDialog(root, conflict, {
+      onKeepMine: () => {
+        enqueue({
+          op_id: crypto.randomUUID(),
+          type: 'update',
+          entity: 'task',
+          id: conflict.id,
+          base_version: conflict.server_record.version,
+          fields: conflict.your_fields,
+        });
+        flush();
+      },
+      onKeepTheirs: () => {
+        const task = appState.tasks.find((t) => t.id === conflict.id);
+        if (task) Object.assign(task, conflict.server_record);
+        drawBoard();
+      },
+    });
+  });
+}
+
 function drawBoard() {
+  saveSnapshot(appState.categories, appState.tasks);
+
   if (currentView === 'archive') {
     drawArchive();
     return;
@@ -43,6 +99,10 @@ function drawBoard() {
 
   renderBoard(root, appState, {
     onOpenChat: () => {
+      if (!isOnline()) {
+        openManualForm(root, activeCategories, { onCreate: createManualTask });
+        return;
+      }
       openChat(root, {
         categories: appState.categories,
         settings: getSettings(),
@@ -162,10 +222,8 @@ function archiveCategory(categoryId) {
 }
 
 function persistCategoryStatus(categoryId, opType, baseVersion) {
-  const settings = getSettings();
-  callScript(settings.scriptUrl, settings.accessToken, 'applyChanges', {
-    ops: [{ op_id: crypto.randomUUID(), type: opType, entity: 'category', id: categoryId, base_version: baseVersion || 0, fields: {} }],
-  }).catch(() => {});
+  enqueue({ op_id: crypto.randomUUID(), type: opType, entity: 'category', id: categoryId, base_version: baseVersion || 0, fields: {} });
+  flush();
 }
 
 function deleteTask(taskId) {
@@ -198,33 +256,23 @@ function createManualTask(fields) {
   });
   drawBoard();
 
-  const settings = getSettings();
-  callScript(settings.scriptUrl, settings.accessToken, 'applyChanges', {
-    ops: [{ op_id: crypto.randomUUID(), type: 'create', entity: 'task', id, base_version: 0, fields }],
-  }).catch(() => {});
+  enqueue({ op_id: crypto.randomUUID(), type: 'create', entity: 'task', id, base_version: 0, fields });
+  flush();
 }
 
 function persistTaskChange(taskId, fields) {
-  const settings = getSettings();
   const task = appState.tasks.find((t) => t.id === taskId);
-  callScript(settings.scriptUrl, settings.accessToken, 'applyChanges', {
-    ops: [{ op_id: crypto.randomUUID(), type: 'update', entity: 'task', id: taskId, base_version: task ? task.version : 0, fields }],
-  }).catch(() => {});
+  enqueue({ op_id: crypto.randomUUID(), type: 'update', entity: 'task', id: taskId, base_version: task ? task.version : 0, fields });
+  flush();
 }
 
 function persistTaskDelete(taskId) {
-  const settings = getSettings();
-  callScript(settings.scriptUrl, settings.accessToken, 'applyChanges', {
-    ops: [{ op_id: crypto.randomUUID(), type: 'delete', entity: 'task', id: taskId, base_version: 0, fields: {} }],
-  }).catch(() => {});
+  enqueue({ op_id: crypto.randomUUID(), type: 'delete', entity: 'task', id: taskId, base_version: 0, fields: {} });
+  flush();
 }
 
-function start() {
-  if (isOnboarded() && getSettings()) {
-    loadBoard();
-    return;
-  }
-  renderWelcome(root, () => renderSettings(root, loadBoard));
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('./sw.js').catch(() => {});
 }
 
 start();

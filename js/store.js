@@ -1,5 +1,7 @@
 const SETTINGS_KEY = 'docket.settings';
 const ONBOARDED_KEY = 'docket.onboarded';
+const SNAPSHOT_KEY = 'docket.snapshot';
+const OUTBOX_KEY = 'docket.outbox';
 
 export function getSettings() {
   try {
@@ -19,4 +21,28 @@ export function isOnboarded() {
 
 export function setOnboarded() {
   localStorage.setItem(ONBOARDED_KEY, 'true');
+}
+
+export function getSnapshot() {
+  try {
+    return JSON.parse(localStorage.getItem(SNAPSHOT_KEY));
+  } catch {
+    return null;
+  }
+}
+
+export function saveSnapshot(categories, tasks) {
+  localStorage.setItem(SNAPSHOT_KEY, JSON.stringify({ categories, tasks }));
+}
+
+export function getOutbox() {
+  try {
+    return JSON.parse(localStorage.getItem(OUTBOX_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveOutbox(ops) {
+  localStorage.setItem(OUTBOX_KEY, JSON.stringify(ops));
 }

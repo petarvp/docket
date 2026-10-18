@@ -607,3 +607,47 @@ button.danger {
   font-size: 14px;
   cursor: pointer;
 }
+
+/* Offline + sync */
+
+.offline-banner {
+  background: #ff9500;
+  color: #fff;
+  text-align: center;
+  font-size: 13px;
+  padding: 6px 12px;
+}
+
+button.secondary {
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.conflict-option {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.conflict-option strong {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.conflict-footer {
+  display: flex;
+  gap: 10px;
+}
+
+.conflict-footer button {
+  flex: 1;
+}

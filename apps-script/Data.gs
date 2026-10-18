@@ -49,8 +49,12 @@ function applyChanges(payload) {
         taskRows.push(buildTaskRow(op));
         applied.push(op.op_id);
       } else if (op.type === 'update' && op.entity === 'task') {
-        updateTaskRow(ss, op);
-        applied.push(op.op_id);
+        var result = updateTaskRow(ss, op);
+        if (result.conflict) {
+          conflicts.push({ op_id: op.op_id, id: op.id, server_record: result.server_record, your_fields: op.fields });
+        } else {
+          applied.push(op.op_id);
+        }
       } else if (op.type === 'delete' && op.entity === 'task') {
         deleteTaskRow(ss, op);
         applied.push(op.op_id);
@@ -119,12 +123,24 @@ function writeRows(ss, sheetName, rows, textColumns) {
 
 var TASK_TEXT_FIELDS = ['category_id', 'title', 'details', 'due_date', 'source_excerpt'];
 
+/**
+ * Връща { conflict: false } при успешен запис, или { conflict: true, server_record }
+ * ако версията на устройството (op.base_version) е по-стара от тази в таблицата —
+ * тогава НЕ пренаписва нищо, а връща текущия запис за диалога "коя версия".
+ */
 function updateTaskRow(ss, op) {
   var sheet = ss.getSheetByName('Tasks');
   var rowIndex = findRowIndexById(sheet, op.id);
   if (rowIndex === -1) throw new Error('not_found');
 
   var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var versionCol = headers.indexOf('version') + 1;
+  var currentVersion = sheet.getRange(rowIndex, versionCol).getValue() || 0;
+
+  if (op.base_version != null && currentVersion > op.base_version) {
+    return { conflict: true, server_record: readRowAsObject(sheet, headers, rowIndex) };
+  }
+
   var fields = op.fields || {};
 
   Object.keys(fields).forEach(function (key) {
@@ -141,11 +157,19 @@ function updateTaskRow(ss, op) {
     sheet.getRange(rowIndex, headers.indexOf('done_at') + 1).setValue('');
   }
 
-  var updatedAtCol = headers.indexOf('updated_at') + 1;
-  var versionCol = headers.indexOf('version') + 1;
-  sheet.getRange(rowIndex, updatedAtCol).setValue(new Date().toISOString());
-  var currentVersion = sheet.getRange(rowIndex, versionCol).getValue();
-  sheet.getRange(rowIndex, versionCol).setValue((currentVersion || 0) + 1);
+  sheet.getRange(rowIndex, headers.indexOf('updated_at') + 1).setValue(new Date().toISOString());
+  sheet.getRange(rowIndex, versionCol).setValue(currentVersion + 1);
+
+  return { conflict: false };
+}
+
+function readRowAsObject(sheet, headers, rowIndex) {
+  var values = sheet.getRange(rowIndex, 1, 1, headers.length).getValues()[0];
+  var obj = {};
+  headers.forEach(function (h, i) {
+    obj[h] = values[i];
+  });
+  return obj;
 }
 
 function deleteTaskRow(ss, op) {
