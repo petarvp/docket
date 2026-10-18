@@ -478,6 +478,7 @@ button.primary:active {
   display: flex;
   align-items: flex-end;
   justify-content: center;
+  z-index: 25;
 }
 
 .chat-panel {
@@ -628,7 +629,7 @@ button.primary:active {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  z-index: 10;
+  z-index: 25;
 }
 
 .task-panel {
@@ -774,7 +775,7 @@ button.danger {
   gap: 16px;
   font-size: 14px;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
-  z-index: 20;
+  z-index: 26;
 }
 
 .undo-btn {
@@ -806,19 +807,45 @@ button.secondary {
   cursor: pointer;
 }
 
-.conflict-option {
+.conflict-table {
   background: var(--bg);
   border-radius: 10px;
-  padding: 10px 12px;
-  margin-bottom: 10px;
-  font-size: 13px;
+  overflow: hidden;
+  margin-top: 4px;
 }
 
-.conflict-option strong {
-  display: block;
-  margin-bottom: 4px;
-  font-size: 12px;
+.conflict-row {
+  display: grid;
+  grid-template-columns: 82px 1fr 1fr;
+  gap: 8px;
+  padding: 8px 10px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.conflict-row:last-child {
+  border-bottom: none;
+}
+
+.conflict-row-header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
   color: var(--text-muted);
+}
+
+.conflict-row-label {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.conflict-row-value {
+  overflow-wrap: break-word;
+}
+
+.conflict-row-diff .conflict-row-value {
+  color: var(--accent);
+  font-weight: 600;
 }
 
 .conflict-footer {
@@ -1151,7 +1178,7 @@ button.secondary {
     display: block;
     position: fixed;
     inset: 0;
-    z-index: 30;
+    z-index: 15;
   }
 
   .sidebar-container.mobile-open .sidebar-overlay-backdrop {

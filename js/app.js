@@ -169,7 +169,11 @@ function drawBoard() {
         sidebarMobileOpen = false;
         drawBoard();
       },
-      onAddCategory: () => openNewCategoryForm(root, { onCreate: createCategoryOnly }),
+      onAddCategory: () => {
+        sidebarMobileOpen = false;
+        drawBoard();
+        openNewCategoryForm(root, { onCreate: createCategoryOnly });
+      },
       onClose: () => {
         sidebarMobileOpen = false;
         drawBoard();

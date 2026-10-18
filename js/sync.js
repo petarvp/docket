@@ -70,31 +70,52 @@ function updateBanner() {
   }
 }
 
+const CONFLICT_FIELDS = [
+  { key: 'title', label: 'Заглавие' },
+  { key: 'priority', label: 'Приоритет', format: priorityLabel },
+  { key: 'due_date', label: 'Срок', format: (v) => v || 'без срок' },
+  { key: 'done', label: 'Статус', format: (v) => (v === true || v === 'TRUE' ? 'приключена' : 'активна') },
+];
+
 export function showConflictDialog(root, conflict, { onKeepMine, onKeepTheirs }) {
   const server = conflict.server_record || {};
-  const mine = conflict.your_fields || {};
+  // your_fields е само промененото — показваме пълната "твоя" версия, като го наслагваме
+  // върху server_record (всичко останало е еднакво, затова е вярна база за сравнение).
+  const mine = { ...server, ...(conflict.your_fields || {}) };
+
+  const rows = CONFLICT_FIELDS.map((f) => {
+    const mineVal = f.format ? f.format(mine[f.key]) : mine[f.key] || '—';
+    const serverVal = f.format ? f.format(server[f.key]) : server[f.key] || '—';
+    const changed = String(mine[f.key]) !== String(server[f.key]);
+    return `
+      <div class="conflict-row ${changed ? 'conflict-row-diff' : ''}">
+        <span class="conflict-row-label">${f.label}</span>
+        <span class="conflict-row-value">${escapeHtml(String(mineVal))}</span>
+        <span class="conflict-row-value">${escapeHtml(String(serverVal))}</span>
+      </div>`;
+  }).join('');
 
   const overlay = document.createElement('div');
   overlay.className = 'task-overlay';
   overlay.innerHTML = `
     <div class="task-panel">
       <div class="task-panel-header">
-        <span>Конфликт при синхронизация</span>
+        <span>Конфликт — „${escapeHtml(server.title || mine.title || 'задача')}"</span>
       </div>
       <div class="task-panel-body">
-        <p class="hint">Тази задача е променена и от друго устройство, докато ти си бил офлайн. Коя версия да остане?</p>
-        <div class="conflict-option">
-          <strong>Твоята версия</strong>
-          <p>${escapeHtml(summarize(mine))}</p>
-        </div>
-        <div class="conflict-option">
-          <strong>Версията от другото устройство</strong>
-          <p>${escapeHtml(summarize(server))}</p>
+        <p class="hint">Тази задача е променена и от друго устройство, докато ти си бил офлайн. Различното е отбелязано.</p>
+        <div class="conflict-table">
+          <div class="conflict-row conflict-row-header">
+            <span></span>
+            <span>Твоята версия</span>
+            <span>Другото устройство</span>
+          </div>
+          ${rows}
         </div>
       </div>
       <div class="task-panel-footer conflict-footer">
-        <button class="secondary mine-btn">Запази моята</button>
-        <button class="primary theirs-btn">Запази другата</button>
+        <button class="secondary mine-btn">Запази моята версия</button>
+        <button class="primary theirs-btn">Запази другата версия</button>
       </div>
     </div>
   `;
@@ -110,13 +131,8 @@ export function showConflictDialog(root, conflict, { onKeepMine, onKeepTheirs })
   });
 }
 
-function summarize(obj) {
-  const parts = [];
-  if (obj.title) parts.push(obj.title);
-  if (obj.priority) parts.push('приоритет: ' + obj.priority);
-  if (obj.due_date) parts.push('срок: ' + obj.due_date);
-  if (obj.done !== undefined) parts.push(obj.done === true || obj.done === 'TRUE' ? 'приключена' : 'активна');
-  return parts.join(' · ') || '(без промени в показаните полета)';
+function priorityLabel(p) {
+  return { high: 'Висок', medium: 'Среден', low: 'Нисък' }[p] || p || '—';
 }
 
 function escapeHtml(str) {
