@@ -56,20 +56,10 @@ export function openTaskDetail(root, task, ctx) {
   });
 }
 
+const NEW_CATEGORY_VALUE = '__new__';
+
 export function openManualForm(root, activeCategories, ctx, preselectedCategoryId) {
-  if (activeCategories.length === 0) {
-    const overlay = document.createElement('div');
-    overlay.className = 'task-overlay';
-    overlay.innerHTML = `
-      <div class="task-panel">
-        <div class="task-panel-header"><span>Нова задача (ръчно)</span><button class="task-close">×</button></div>
-        <div class="task-panel-body"><p class="hint">Няма активни колони още — добави първа задача през чата, за да се появи колона.</p></div>
-      </div>
-    `;
-    root.appendChild(overlay);
-    overlay.querySelector('.task-close').addEventListener('click', () => overlay.remove());
-    return;
-  }
+  const noCategories = activeCategories.length === 0;
 
   const overlay = document.createElement('div');
   overlay.className = 'task-overlay';
@@ -85,8 +75,10 @@ export function openManualForm(root, activeCategories, ctx, preselectedCategoryI
         <label>Категория
           <select class="f-category">
             ${activeCategories.map((c) => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('')}
+            <option value="${NEW_CATEGORY_VALUE}">+ Нова категория</option>
           </select>
         </label>
+        <input class="f-new-category" placeholder="Име на новата категория" style="${noCategories ? '' : 'display:none'}" />
         <label>Приоритет
           <select class="f-priority">
             <option value="high">Висок</option>
@@ -108,9 +100,20 @@ export function openManualForm(root, activeCategories, ctx, preselectedCategoryI
   `;
   root.appendChild(overlay);
 
-  if (preselectedCategoryId) {
-    overlay.querySelector('.f-category').value = preselectedCategoryId;
+  const categorySelect = overlay.querySelector('.f-category');
+  const newCategoryInput = overlay.querySelector('.f-new-category');
+
+  if (noCategories) {
+    categorySelect.value = NEW_CATEGORY_VALUE;
+  } else if (preselectedCategoryId) {
+    categorySelect.value = preselectedCategoryId;
   }
+
+  categorySelect.addEventListener('change', () => {
+    const isNew = categorySelect.value === NEW_CATEGORY_VALUE;
+    newCategoryInput.style.display = isNew ? '' : 'none';
+    if (isNew) newCategoryInput.focus();
+  });
 
   overlay.querySelectorAll('.chip').forEach((chip) => {
     chip.addEventListener('click', () => {
@@ -124,10 +127,19 @@ export function openManualForm(root, activeCategories, ctx, preselectedCategoryI
   overlay.querySelector('.f-save').addEventListener('click', () => {
     const title = overlay.querySelector('.f-title').value.trim();
     if (!title) return;
+
+    const isNewCategory = categorySelect.value === NEW_CATEGORY_VALUE;
+    const newCategoryName = newCategoryInput.value.trim();
+    if (isNewCategory && !newCategoryName) {
+      newCategoryInput.focus();
+      return;
+    }
+
     const fields = {
       title,
       details: overlay.querySelector('.f-details').value.trim(),
-      category_id: overlay.querySelector('.f-category').value,
+      category_id: isNewCategory ? null : categorySelect.value,
+      new_category_name: isNewCategory ? newCategoryName : undefined,
       priority: overlay.querySelector('.f-priority').value,
       due_date: overlay.querySelector('.f-due').value || null,
       source_excerpt: '',

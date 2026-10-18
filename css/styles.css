@@ -672,6 +672,10 @@ button.primary:active {
   margin-bottom: 14px;
 }
 
+.f-new-category {
+  margin-bottom: 14px;
+}
+
 .task-panel-body input,
 .task-panel-body select,
 .task-panel-body textarea {

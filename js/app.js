@@ -262,12 +262,36 @@ function deleteTask(taskId) {
 }
 
 function createManualTask(fields) {
-  const id = crypto.randomUUID();
   const nowIso = new Date().toISOString();
+  let { category_id, new_category_name, ...rest } = fields;
+
+  if (new_category_name) {
+    category_id = crypto.randomUUID();
+    appState.categories.push({
+      id: category_id,
+      name: new_category_name,
+      status: 'active',
+      created_at: nowIso,
+      archived_at: '',
+      updated_at: nowIso,
+      version: 1,
+    });
+    enqueue({
+      op_id: crypto.randomUUID(),
+      type: 'create',
+      entity: 'category',
+      id: category_id,
+      base_version: 0,
+      fields: { name: new_category_name },
+    });
+  }
+
+  const taskFields = { ...rest, category_id };
+  const id = crypto.randomUUID();
   appState.tasks.push({
     id,
-    ...fields,
-    due_date: fields.due_date || '',
+    ...taskFields,
+    due_date: taskFields.due_date || '',
     done: false,
     done_at: '',
     created_at: nowIso,
@@ -276,7 +300,7 @@ function createManualTask(fields) {
   });
   drawBoard();
 
-  enqueue({ op_id: crypto.randomUUID(), type: 'create', entity: 'task', id, base_version: 0, fields });
+  enqueue({ op_id: crypto.randomUUID(), type: 'create', entity: 'task', id, base_version: 0, fields: taskFields });
   flush();
 }
 
