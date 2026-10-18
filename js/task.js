@@ -16,9 +16,11 @@ export function openNewCategoryForm(root, ctx) {
     </div>
   `;
   root.appendChild(overlay);
+  closeOnOutsideClick(overlay);
 
   const input = overlay.querySelector('.f-category-name');
   input.focus();
+  autoCapitalizeFirstLetter(input);
 
   overlay.querySelector('.task-close').addEventListener('click', () => overlay.remove());
   overlay.querySelector('.f-save').addEventListener('click', () => {
@@ -63,6 +65,7 @@ export function openTaskDetail(root, task, ctx) {
     </div>
   `;
   root.appendChild(overlay);
+  closeOnOutsideClick(overlay);
   overlay.querySelector('.f-priority').value = task.priority || 'medium';
 
   overlay.querySelector('.task-close').addEventListener('click', () => overlay.remove());
@@ -133,9 +136,11 @@ export function openManualForm(root, activeCategories, ctx, preselectedCategoryI
     </div>
   `;
   root.appendChild(overlay);
+  closeOnOutsideClick(overlay);
 
   const categorySelect = overlay.querySelector('.f-category');
   const newCategoryInput = overlay.querySelector('.f-new-category');
+  autoCapitalizeFirstLetter(newCategoryInput);
 
   if (noCategories) {
     categorySelect.value = NEW_CATEGORY_VALUE;
@@ -181,6 +186,24 @@ export function openManualForm(root, activeCategories, ctx, preselectedCategoryI
     };
     overlay.remove();
     ctx.onCreate(fields);
+  });
+}
+
+function closeOnOutsideClick(overlay) {
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
+}
+
+// Капитализира само първата буква, която потребителят въведе — еднократно, за да
+// остане полето с главна буква по подразбиране, без да пречи ако той нарочно го
+// редактира/препише с малка.
+function autoCapitalizeFirstLetter(input) {
+  let applied = false;
+  input.addEventListener('input', () => {
+    if (applied || !input.value) return;
+    applied = true;
+    input.value = input.value.charAt(0).toUpperCase() + input.value.slice(1);
   });
 }
 

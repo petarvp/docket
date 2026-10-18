@@ -1,7 +1,10 @@
 import { relativeDueLabel, dueDateDiffDays } from './dates.js';
+import { categoryHue } from './colors.js';
 
 const expandedIds = new Set();
 const PRIORITY_LABELS = { high: 'Висок', medium: 'Среден', low: 'Нисък' };
+const PRIORITY_RANK = { high: 0, medium: 1, low: 2 };
+let allViewSort = 'category'; // 'category' | 'priority' | 'due'
 
 const ICON_ARCHIVE =
   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="21 8 21 21 3 21 3 8"></polyline><rect x="1" y="3" width="22" height="5"></rect><line x1="10" y1="12" x2="14" y2="12"></line></svg>';
@@ -33,7 +36,9 @@ export function renderBoard(root, { categories, tasks }, handlers) {
 
   const fab = root.querySelector('#fab');
   fab.addEventListener('click', () => {
-    const existingChat = root.querySelector('.chat-overlay');
+    // Чатът се добавя към целия app-root, не само към тази под-зона (board-area) —
+    // затова търсим в целия документ, иначе тук никога не го намираме.
+    const existingChat = document.querySelector('.chat-overlay');
     if (existingChat) {
       existingChat.remove();
       fab.classList.remove('open');
@@ -78,29 +83,55 @@ export function renderDateView(root, { categories, tasks }, viewId, handlers) {
     });
   }
 
-  filtered = [...filtered].sort((a, b) => {
-    const doneDiff = Number(isDone(a)) - Number(isDone(b));
-    if (doneDiff !== 0) return doneDiff;
-    if (isDone(a)) return doneAtTime(b) - doneAtTime(a); // most recently completed first
-    const da = dueDateDiffDays(a.due_date);
-    const db = dueDateDiffDays(b.due_date);
-    if (da === null && db === null) return 0;
-    if (da === null) return 1;
-    if (db === null) return -1;
-    return da - db;
-  });
+  const isAllView = viewId === 'all';
+  const sortMode = isAllView ? allViewSort : 'due';
+
+  let bodyHtml;
+  if (isAllView && sortMode === 'category') {
+    bodyHtml =
+      activeCategories
+        .map((cat) => {
+          const catTasks = sortForDisplay(filtered.filter((t) => t.category_id === cat.id), 'due');
+          if (!catTasks.length) return '';
+          return `
+            <div class="all-view-group">
+              <div class="all-view-group-header" style="--cat-hue: ${categoryHue(categories, cat.id)}">${escapeHtml(cat.name)}</div>
+              <div class="cards">${catTasks.map((t) => renderCard(t)).join('')}</div>
+            </div>`;
+        })
+        .join('') || '<p class="empty-hint">Няма задачи в този изглед.</p>';
+  } else {
+    const sorted = sortForDisplay(filtered, sortMode);
+    bodyHtml = sorted.length
+      ? sorted.map((t) => renderCard(t, categoryById.get(t.category_id)?.name)).join('')
+      : '<p class="empty-hint">Няма задачи в този изглед.</p>';
+  }
 
   root.innerHTML = `
     <div class="board-screen">
-      <div class="date-view-list" id="date-view-list">
-        ${
-          filtered.length
-            ? filtered.map((t) => renderCard(t, categoryById.get(t.category_id)?.name)).join('')
-            : '<p class="empty-hint">Няма задачи в този изглед.</p>'
-        }
-      </div>
+      ${
+        isAllView
+          ? `<div class="all-view-controls">
+              <label class="all-sort-label">Подреди по
+                <select class="all-sort">
+                  <option value="category" ${sortMode === 'category' ? 'selected' : ''}>Категория</option>
+                  <option value="priority" ${sortMode === 'priority' ? 'selected' : ''}>Приоритет</option>
+                  <option value="due" ${sortMode === 'due' ? 'selected' : ''}>Срок</option>
+                </select>
+              </label>
+            </div>`
+          : ''
+      }
+      <div class="date-view-list" id="date-view-list">${bodyHtml}</div>
     </div>
   `;
+
+  if (isAllView) {
+    root.querySelector('.all-sort').addEventListener('change', (e) => {
+      allViewSort = e.target.value;
+      renderDateView(root, { categories, tasks }, viewId, handlers);
+    });
+  }
 
   wireCardEvents(root.querySelector('#date-view-list'), filtered, handlers);
 }
@@ -166,13 +197,9 @@ function playFlip(columnsEl, previousRects) {
 }
 
 function renderColumn(category, tasks) {
-  const sorted = [...tasks].sort((a, b) => {
-    const doneDiff = Number(isDone(a)) - Number(isDone(b));
-    if (doneDiff !== 0) return doneDiff;
-    if (isDone(a)) return doneAtTime(b) - doneAtTime(a); // most recently completed first
-    return 0;
-  });
+  const sorted = sortForDisplay(tasks, 'due');
   const firstDoneIndex = sorted.findIndex(isDone);
+  const remaining = tasks.filter((t) => !isDone(t)).length;
 
   const cardsHtml = sorted
     .map((t, i) => (i === firstDoneIndex && i > 0 ? '<hr class="done-divider" />' : '') + renderCard(t))
@@ -181,7 +208,10 @@ function renderColumn(category, tasks) {
   return `
     <div class="column">
       <div class="column-header">
-        <h2>${escapeHtml(category.name)}</h2>
+        <div class="column-title">
+          ${remaining > 0 ? `<span class="column-count">${remaining}</span>` : ''}
+          <h2>${escapeHtml(category.name)}</h2>
+        </div>
         <button class="column-add" data-category-id="${category.id}" aria-label="Добави задача в ${escapeHtml(category.name)}">+</button>
       </div>
       <div class="cards">
@@ -217,6 +247,26 @@ function renderCard(task, categoryLabel) {
       </div>
     </div>
   `;
+}
+
+function sortForDisplay(tasks, mode) {
+  return [...tasks].sort((a, b) => {
+    const doneDiff = Number(isDone(a)) - Number(isDone(b));
+    if (doneDiff !== 0) return doneDiff;
+    if (isDone(a)) return doneAtTime(b) - doneAtTime(a); // most recently completed first
+
+    if (mode === 'priority') {
+      const prDiff = (PRIORITY_RANK[a.priority] ?? 1) - (PRIORITY_RANK[b.priority] ?? 1);
+      if (prDiff !== 0) return prDiff;
+    }
+
+    const da = dueDateDiffDays(a.due_date);
+    const db = dueDateDiffDays(b.due_date);
+    if (da === null && db === null) return 0;
+    if (da === null) return 1;
+    if (db === null) return -1;
+    return da - db;
+  });
 }
 
 function isDone(task) {

@@ -18,7 +18,6 @@ export function openChat(root, ctx) {
     <div class="chat-panel">
       <div class="chat-header">
         <span>Нова задача</span>
-        <button class="chat-close" aria-label="Затвори">×</button>
       </div>
       <div class="chat-messages"></div>
       <div class="chat-attachment" hidden></div>
@@ -33,7 +32,6 @@ export function openChat(root, ctx) {
   `;
   root.appendChild(overlay);
 
-  overlay.querySelector('.chat-close').addEventListener('click', () => closeChat(root, overlay));
   overlay.querySelector('.chat-send').addEventListener('click', () => handleSend(overlay, ctx, state));
   overlay.querySelector('.chat-manual-link').addEventListener('click', () => {
     closeChat(root, overlay);
@@ -240,6 +238,7 @@ async function confirmProposal(overlay, proposal, ctx, state, confirmBtn) {
     } else if (newCategoryIds[t.category]) {
       categoryId = newCategoryIds[t.category];
     } else {
+      const categoryName = capitalizeFirst(t.category);
       categoryId = crypto.randomUUID();
       newCategoryIds[t.category] = categoryId;
       ops.push({
@@ -248,9 +247,9 @@ async function confirmProposal(overlay, proposal, ctx, state, confirmBtn) {
         entity: 'category',
         id: categoryId,
         base_version: 0,
-        fields: { name: t.category },
+        fields: { name: categoryName },
       });
-      newCategories.push({ id: categoryId, name: t.category, status: 'active', created_at: nowIso, archived_at: '', updated_at: nowIso, version: 1 });
+      newCategories.push({ id: categoryId, name: categoryName, status: 'active', created_at: nowIso, archived_at: '', updated_at: nowIso, version: 1 });
     }
 
     const taskId = crypto.randomUUID();
@@ -301,4 +300,8 @@ function escapeHtml(str) {
   const div = document.createElement('div');
   div.textContent = str ?? '';
   return div.innerHTML;
+}
+
+function capitalizeFirst(str) {
+  return str ? str.charAt(0).toUpperCase() + str.slice(1) : str;
 }

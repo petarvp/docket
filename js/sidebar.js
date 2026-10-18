@@ -1,3 +1,5 @@
+import { categoryHue } from './colors.js';
+
 const VIEWS = [
   { id: 'board', label: 'Табло' },
   { id: 'today', label: 'Днес' },
@@ -36,7 +38,7 @@ export function renderSidebar(container, { categories, activeView, activeCategor
           .map((c) => {
             const count = (taskCounts && taskCounts[c.id]) || 0;
             return `
-              <button class="sidebar-item sidebar-category-item ${activeCategoryId === c.id ? 'active' : ''}" style="--cat-hue: ${hashHue(c.id)}" data-category="${c.id}">
+              <button class="sidebar-item sidebar-category-item ${activeCategoryId === c.id ? 'active' : ''}" style="--cat-hue: ${categoryHue(categories, c.id)}" data-category="${c.id}">
                 <span class="sidebar-category-name">${escapeHtml(c.name)}</span>
                 ${count > 0 ? `<span class="sidebar-category-count">${count}</span>` : ''}
               </button>`;
@@ -56,14 +58,6 @@ export function renderSidebar(container, { categories, activeView, activeCategor
   container.querySelector('.sidebar-category-add').addEventListener('click', handlers.onAddCategory);
   container.querySelector('.sidebar-close').addEventListener('click', handlers.onClose);
   container.querySelector('.sidebar-overlay-backdrop').addEventListener('click', handlers.onClose);
-}
-
-function hashHue(id) {
-  let hash = 0;
-  for (let i = 0; i < id.length; i++) {
-    hash = (hash * 31 + id.charCodeAt(i)) % 360;
-  }
-  return hash;
 }
 
 function escapeHtml(str) {

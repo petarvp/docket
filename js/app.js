@@ -16,6 +16,21 @@ let boardFilter = { kind: 'kanban' }; // 'kanban' | { kind: 'date', range } | { 
 let sidebarMobileOpen = false;
 let sidebarDesktopCollapsed = false;
 
+// Чатът е плаващ прозорец без собствен бутон за затваряне — затваря се с клик
+// върху самия FAB (board.js) или с клик извън него, засечен тук веднъж за цялото приложение.
+root.addEventListener(
+  'click',
+  (e) => {
+    const chatOverlay = root.querySelector('.chat-overlay');
+    if (!chatOverlay) return;
+    const fab = root.querySelector('#fab');
+    if (chatOverlay.contains(e.target) || (fab && fab.contains(e.target))) return;
+    chatOverlay.remove();
+    fab?.classList.remove('open');
+  },
+  true
+);
+
 function applyTheme(theme) {
   if (theme === 'light' || theme === 'dark') {
     document.documentElement.setAttribute('data-theme', theme);

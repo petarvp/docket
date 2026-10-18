@@ -144,6 +144,9 @@ export function openSettingsMenu(root, { theme, onThemeChange, genZMode, onGenZM
     </div>
   `;
   root.appendChild(overlay);
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) overlay.remove();
+  });
 
   const markActive = (current) => {
     overlay.querySelectorAll('.theme-option').forEach((btn) => {
