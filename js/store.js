@@ -4,6 +4,7 @@ const SNAPSHOT_KEY = 'docket.snapshot';
 const OUTBOX_KEY = 'docket.outbox';
 const THEME_KEY = 'docket.theme';
 const GENZ_MODE_KEY = 'docket.genZMode';
+const FONT_SCALE_KEY = 'docket.fontScale';
 
 export function getSettings() {
   try {
@@ -63,4 +64,12 @@ export function getGenZMode() {
 
 export function setGenZMode(value) {
   localStorage.setItem(GENZ_MODE_KEY, value ? 'true' : 'false');
+}
+
+export function getFontScale() {
+  return Number(localStorage.getItem(FONT_SCALE_KEY)) || 1;
+}
+
+export function setFontScale(value) {
+  localStorage.setItem(FONT_SCALE_KEY, String(value));
 }

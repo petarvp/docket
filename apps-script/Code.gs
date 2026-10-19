@@ -84,7 +84,7 @@ function uploadFile(payload) {
 function setup() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
-  var categoriesSheet = createSheetWithHeaders(ss, 'Categories', ['id', 'name', 'status', 'created_at', 'archived_at', 'updated_at', 'version']);
+  var categoriesSheet = createSheetWithHeaders(ss, 'Categories', ['id', 'name', 'status', 'created_at', 'archived_at', 'updated_at', 'version', 'hue']);
   formatColumnsAsText(categoriesSheet, [2]); // name — за да не го "изяде" автоматичното разпознаване на дати
 
   var tasksSheet = createSheetWithHeaders(ss, 'Tasks', ['id', 'category_id', 'title', 'details', 'priority', 'due_date', 'source_excerpt', 'origin', 'done', 'done_at', 'created_at', 'updated_at', 'version']);

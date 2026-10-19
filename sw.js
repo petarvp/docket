@@ -1,4 +1,4 @@
-const CACHE_NAME = 'docket-v1';
+const CACHE_NAME = 'docket-v3';
 const ASSETS = [
   './',
   './index.html',
@@ -14,6 +14,11 @@ const ASSETS = [
   './js/sync.js',
   './js/api.js',
   './js/dates.js',
+  './js/sidebar.js',
+  './js/colors.js',
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png',
 ];
 
 self.addEventListener('install', (event) => {

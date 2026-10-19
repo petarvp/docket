@@ -37,6 +37,12 @@ function applyChanges(payload) {
   var conflicts = [];
   var ss = SpreadsheetApp.getActiveSpreadsheet();
 
+  // Миграция веднъж на подаване: таблици, създадени преди да съществуваше
+  // ръчният цвят на категория, нямат колона 'hue' — добавяме я тук, преди
+  // всякакъв запис в Categories, за да не се разминат данни и заглавия.
+  var categoriesSheetForMigration = ss.getSheetByName('Categories');
+  if (categoriesSheetForMigration) ensureCategoryHueColumn(categoriesSheetForMigration);
+
   var categoryRows = [];
   var taskRows = [];
 
@@ -64,6 +70,9 @@ function applyChanges(payload) {
       } else if (op.type === 'reactivateCategory' && op.entity === 'category') {
         setCategoryStatus(ss, op.id, 'active');
         applied.push(op.op_id);
+      } else if (op.type === 'update' && op.entity === 'category') {
+        updateCategoryRow(ss, op);
+        applied.push(op.op_id);
       } else {
         conflicts.push({ op_id: op.op_id, error: 'unsupported_op' });
       }
@@ -85,7 +94,7 @@ function applyChanges(payload) {
 function buildCategoryRow(op) {
   var f = op.fields;
   var now = new Date().toISOString();
-  return [op.id, f.name, 'active', now, '', now, 1];
+  return [op.id, f.name, 'active', now, '', now, 1, f.hue == null ? '' : f.hue];
 }
 
 function buildTaskRow(op) {
@@ -194,6 +203,44 @@ function setCategoryStatus(ss, id, status) {
   var versionCol = headers.indexOf('version') + 1;
   var currentVersion = sheet.getRange(rowIndex, versionCol).getValue();
   sheet.getRange(rowIndex, versionCol).setValue((currentVersion || 0) + 1);
+}
+
+var CATEGORY_UPDATABLE_FIELDS = ['name', 'hue'];
+
+/**
+ * Редакция на категория (име и/или ръчно зададен цвят). Миграцията на листа
+ * (ensureCategoryHueColumn) гарантира, че колоната 'hue' съществува дори за
+ * таблици, създадени преди тази функция — без да е нужно ръчно пипане от потребителя.
+ */
+function updateCategoryRow(ss, op) {
+  var sheet = ss.getSheetByName('Categories');
+  ensureCategoryHueColumn(sheet);
+  var rowIndex = findRowIndexById(sheet, op.id);
+  if (rowIndex === -1) throw new Error('not_found');
+
+  var headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
+  var fields = op.fields || {};
+
+  CATEGORY_UPDATABLE_FIELDS.forEach(function (key) {
+    if (!(key in fields)) return;
+    var col = headers.indexOf(key) + 1;
+    if (col === 0) return;
+    var cell = sheet.getRange(rowIndex, col);
+    if (key === 'name') cell.setNumberFormat('@');
+    cell.setValue(fields[key] == null ? '' : fields[key]);
+  });
+
+  sheet.getRange(rowIndex, headers.indexOf('updated_at') + 1).setValue(new Date().toISOString());
+  var versionCol = headers.indexOf('version') + 1;
+  var currentVersion = sheet.getRange(rowIndex, versionCol).getValue();
+  sheet.getRange(rowIndex, versionCol).setValue((currentVersion || 0) + 1);
+}
+
+function ensureCategoryHueColumn(sheet) {
+  var lastCol = sheet.getLastColumn();
+  var headers = sheet.getRange(1, 1, 1, lastCol).getValues()[0];
+  if (headers.indexOf('hue') !== -1) return;
+  sheet.getRange(1, lastCol + 1).setValue('hue');
 }
 
 function findRowIndexById(sheet, id) {

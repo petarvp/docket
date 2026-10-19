@@ -12,6 +12,9 @@ const VIEWS = [
 const ICON_MENU =
   '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>';
 
+const ICON_EDIT_SMALL =
+  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"></path></svg>';
+
 export { ICON_MENU, VIEWS };
 
 export function renderSidebar(container, { categories, activeView, activeCategoryId, taskCounts }, handlers) {
@@ -38,10 +41,13 @@ export function renderSidebar(container, { categories, activeView, activeCategor
           .map((c) => {
             const count = (taskCounts && taskCounts[c.id]) || 0;
             return `
-              <button class="sidebar-item sidebar-category-item ${activeCategoryId === c.id ? 'active' : ''}" style="--cat-hue: ${categoryHue(categories, c.id)}" data-category="${c.id}">
-                <span class="sidebar-category-name">${escapeHtml(c.name)}</span>
-                ${count > 0 ? `<span class="sidebar-category-count">${count}</span>` : ''}
-              </button>`;
+              <div class="sidebar-category-row">
+                <button class="sidebar-item sidebar-category-item ${activeCategoryId === c.id ? 'active' : ''}" style="--cat-hue: ${categoryHue(categories, c.id)}" data-category="${c.id}">
+                  <span class="sidebar-category-name">${escapeHtml(c.name)}</span>
+                  ${count > 0 ? `<span class="sidebar-category-count">${count}</span>` : ''}
+                </button>
+                <button class="sidebar-category-edit" aria-label="Редактирай ${escapeHtml(c.name)}" data-edit-category="${c.id}">${ICON_EDIT_SMALL}</button>
+              </div>`;
           })
           .join('')}
         <button class="sidebar-item sidebar-category-add" aria-label="Нова категория">+ Нова категория</button>
@@ -54,6 +60,12 @@ export function renderSidebar(container, { categories, activeView, activeCategor
   });
   container.querySelectorAll('[data-category]').forEach((btn) => {
     btn.addEventListener('click', () => handlers.onSelectCategory(btn.dataset.category));
+  });
+  container.querySelectorAll('[data-edit-category]').forEach((btn) => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      handlers.onEditCategory(btn.dataset.editCategory);
+    });
   });
   container.querySelector('.sidebar-category-add').addEventListener('click', handlers.onAddCategory);
   container.querySelector('.sidebar-close').addEventListener('click', handlers.onClose);

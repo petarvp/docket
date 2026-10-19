@@ -114,7 +114,9 @@ const THEME_CHOICES = [
   { value: 'dark', label: 'Тъмна' },
 ];
 
-export function openSettingsMenu(root, { theme, onThemeChange, genZMode, onGenZModeChange }) {
+const FONT_SCALE_STEPS = [0.875, 1, 1.125, 1.25, 1.375];
+
+export function openSettingsMenu(root, { theme, onThemeChange, genZMode, onGenZModeChange, fontScale, onFontScaleChange }) {
   const overlay = document.createElement('div');
   overlay.className = 'task-overlay';
   overlay.innerHTML = `
@@ -127,6 +129,13 @@ export function openSettingsMenu(root, { theme, onThemeChange, genZMode, onGenZM
         <p class="hint">Тема</p>
         <div class="theme-options">
           ${THEME_CHOICES.map((c) => `<button class="theme-option" data-theme="${c.value}">${c.label}</button>`).join('')}
+        </div>
+
+        <p class="hint settings-section-spacer">Размер на текста</p>
+        <div class="font-scale-row">
+          <button type="button" class="icon-button font-scale-down" aria-label="По-малък текст">A-</button>
+          <span class="font-scale-value">100%</span>
+          <button type="button" class="icon-button font-scale-up" aria-label="По-голям текст">A+</button>
         </div>
 
         <p class="hint settings-section-spacer">Gen Z mode</p>
@@ -165,5 +174,25 @@ export function openSettingsMenu(root, { theme, onThemeChange, genZMode, onGenZM
 
   overlay.querySelector('.genz-toggle').addEventListener('change', (e) => {
     onGenZModeChange(e.target.checked);
+  });
+
+  let currentScale = fontScale || 1;
+  const scaleValueEl = overlay.querySelector('.font-scale-value');
+  const updateScaleLabel = () => {
+    scaleValueEl.textContent = `${Math.round(currentScale * 100)}%`;
+  };
+  updateScaleLabel();
+
+  overlay.querySelector('.font-scale-down').addEventListener('click', () => {
+    const idx = Math.max(0, FONT_SCALE_STEPS.indexOf(currentScale) - 1);
+    currentScale = FONT_SCALE_STEPS[idx] ?? FONT_SCALE_STEPS[0];
+    updateScaleLabel();
+    onFontScaleChange(currentScale);
+  });
+  overlay.querySelector('.font-scale-up').addEventListener('click', () => {
+    const idx = Math.min(FONT_SCALE_STEPS.length - 1, FONT_SCALE_STEPS.indexOf(currentScale) + 1);
+    currentScale = FONT_SCALE_STEPS[idx] ?? FONT_SCALE_STEPS[FONT_SCALE_STEPS.length - 1];
+    updateScaleLabel();
+    onFontScaleChange(currentScale);
   });
 }

@@ -1,10 +1,21 @@
 import { renderWelcome, renderSettings, openSettingsMenu } from './settings.js';
-import { getSettings, isOnboarded, getSnapshot, saveSnapshot, getTheme, setTheme, getGenZMode, setGenZMode } from './store.js';
+import {
+  getSettings,
+  isOnboarded,
+  getSnapshot,
+  saveSnapshot,
+  getTheme,
+  setTheme,
+  getGenZMode,
+  setGenZMode,
+  getFontScale,
+  setFontScale,
+} from './store.js';
 import { callScript } from './api.js';
 import { renderBoard, renderArchiveView, renderDateView, ICON_ARCHIVE, ICON_SETTINGS } from './board.js';
 import { renderSidebar, ICON_MENU, VIEWS } from './sidebar.js';
 import { openChat } from './chat.js';
-import { openTaskDetail, openManualForm, openNewCategoryForm } from './task.js';
+import { openTaskDetail, openManualForm, openNewCategoryForm, openCategoryEditForm } from './task.js';
 import { showUndo } from './undo.js';
 import { initSync, isOnline, enqueue, flush, showConflictDialog } from './sync.js';
 
@@ -39,7 +50,12 @@ function applyTheme(theme) {
   }
 }
 
+function applyFontScale(scale) {
+  document.documentElement.style.setProperty('zoom', scale);
+}
+
 applyTheme(getTheme());
+applyFontScale(getFontScale());
 
 async function start() {
   if (!(isOnboarded() && getSettings())) {
@@ -189,6 +205,16 @@ function drawBoard() {
         drawBoard();
         openNewCategoryForm(root, { onCreate: createCategoryOnly });
       },
+      onEditCategory: (categoryId) => {
+        const category = appState.categories.find((c) => c.id === categoryId);
+        if (!category) return;
+        sidebarMobileOpen = false;
+        drawBoard();
+        openCategoryEditForm(root, category, appState.categories, {
+          onSave: updateCategory,
+          onArchive: (id) => archiveCategory(id),
+        });
+      },
       onClose: () => {
         sidebarMobileOpen = false;
         drawBoard();
@@ -213,6 +239,7 @@ function drawBoard() {
   if (boardFilter.kind === 'date') {
     renderDateView(boardArea, appState, boardFilter.range, {
       onToggleDone: toggleDone,
+      onDeleteTask: deleteTask,
       onOpenTask: (task) => {
         openTaskDetail(root, task, { onUpdate: updateTask, onToggleDone: toggleDone, onDelete: deleteTask });
       },
@@ -244,6 +271,8 @@ function drawBoard() {
         });
       },
       onToggleDone: toggleDone,
+      onDeleteTask: deleteTask,
+      onMoveTask: moveTaskToCategory,
       onOpenTask: (task) => {
         openTaskDetail(root, task, { onUpdate: updateTask, onToggleDone: toggleDone, onDelete: deleteTask });
       },
@@ -261,6 +290,11 @@ function openSettings() {
     },
     genZMode: getGenZMode(),
     onGenZModeChange: (value) => setGenZMode(value),
+    fontScale: getFontScale(),
+    onFontScaleChange: (scale) => {
+      setFontScale(scale);
+      applyFontScale(scale);
+    },
   });
 }
 
@@ -276,6 +310,7 @@ function drawArchive(boardArea) {
         drawBoard();
       },
       onToggleDone: toggleDoneInArchive,
+      onDeleteTask: deleteTask,
       onOpenTask: (task) => {
         openTaskDetail(root, task, {
           onUpdate: updateTask,
@@ -297,6 +332,10 @@ function updateTask(taskId, fields) {
   Object.assign(task, fields);
   drawBoard();
   persistTaskChange(taskId, fields);
+}
+
+function moveTaskToCategory(taskId, categoryId) {
+  updateTask(taskId, { category_id: categoryId });
 }
 
 function toggleDone(taskId, done) {
@@ -358,6 +397,22 @@ function archiveCategory(categoryId) {
 
 function persistCategoryStatus(categoryId, opType, baseVersion) {
   enqueue({ op_id: crypto.randomUUID(), type: opType, entity: 'category', id: categoryId, base_version: baseVersion || 0, fields: {} });
+  flush();
+}
+
+function updateCategory(categoryId, fields) {
+  const category = appState.categories.find((c) => c.id === categoryId);
+  if (!category) return;
+  Object.assign(category, { name: fields.name, hue: fields.hue == null ? '' : fields.hue });
+  drawBoard();
+  enqueue({
+    op_id: crypto.randomUUID(),
+    type: 'update',
+    entity: 'category',
+    id: categoryId,
+    base_version: category.version || 0,
+    fields: { name: fields.name, hue: fields.hue == null ? '' : fields.hue },
+  });
   flush();
 }
 
